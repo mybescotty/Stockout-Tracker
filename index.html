@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockout Tracker</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --header-bg: #1a1a2e;
+            --primary: #0f3460;
+            --danger: #e94560;
+            --danger-light: #ffeef0;
+            --warning: #f5a623;
+            --info: #4a90d9;
+            --success: #27ae60;
+            --card-bg: #ffffff;
+            --table-stripe: #f8f9fa;
+            --body-bg: #f0f2f5;
+            --text: #333;
+            --text-light: #666;
+            --border: #dee2e6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--body-bg); color: var(--text); min-height: 100vh; }
+        .header { background: var(--header-bg); color: white; padding: 20px 32px; }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header p { font-size: 14px; opacity: 0.7; margin-top: 4px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        .upload-panel { background: var(--card-bg); border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: #f0f4ff; }
+        .upload-zone h3 { font-size: 18px; margin-bottom: 8px; color: var(--primary); }
+        .upload-zone p { color: var(--text-light); font-size: 14px; }
+        .upload-zone input[type="file"] { display: none; }
+        .file-loaded { display: flex; align-items: center; gap: 8px; color: var(--success); font-weight: 500; margin-top: 12px; justify-content: center; }
+        .controls { display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+        .controls select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; min-width: 250px; background: white; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .hidden { display: none; }
+        .dashboard { margin-bottom: 24px; }
+        .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.info { border-left-color: var(--info); }
+        .stat-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 6px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; }
+        .stat-card .sub { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+        .breakdown-panel { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .breakdown-panel h3 { font-size: 16px; margin-bottom: 12px; color: var(--primary); }
+        .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .breakdown-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--text-light); }
+        .breakdown-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+        .results-panel { background: var(--card-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .results-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+        .results-header h3 { font-size: 16px; color: var(--primary); }
+        .toggle-group { display: flex; gap: 0; }
+        .toggle-btn { padding: 8px 16px; border: 1px solid var(--border); background: white; font-size: 13px; cursor: pointer; }
+        .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+        .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+        .toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th { position: sticky; top: 0; background: var(--header-bg); color: white; padding: 10px 12px; text-align: left; font-weight: 500; cursor: pointer; white-space: nowrap; user-select: none; }
+        thead th:hover { background: #2a2a4e; }
+        thead th .sort-arrow { margin-left: 4px; opacity: 0.5; }
+        thead th.sorted .sort-arrow { opacity: 1; }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        tbody tr:nth-child(even) { background: var(--table-stripe); }
+        tbody tr:hover { background: #e8f0fe; }
+        tbody tr.flagged-row { background: var(--danger-light); }
+        tbody tr.flagged-row:hover { background: #fdd; }
+        .flag-icon { color: var(--danger); font-weight: 700; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-recv { background: #fff3e0; color: #e65100; }
+        .badge-emergency { background: #e3f2fd; color: #1565c0; }
+        .no-data { padding: 40px; text-align: center; color: var(--text-light); }
+        .count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+        .count-high { background: var(--danger); color: white; }
+        .count-normal { background: var(--border); color: var(--text); }
+        .footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 12px; }
+        @media (max-width: 768px) {
+            .breakdown-grid { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls select { min-width: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Stockout Tracker</h1>
+        <p>Identify parts needing permanent stocking — upload transaction data to find repeated transfers and emergency orders</p>
+    </div>
+    <div class="container">
+        <div class="upload-panel">
+            <div class="upload-zone" id="uploadZone">
+                <h3>Upload Transaction Data</h3>
+                <p>Drag and drop your .xlsx file here, or click to browse</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+            </div>
+            <div class="file-loaded hidden" id="fileLoaded"></div>
+            <div class="controls hidden" id="controls">
+                <select id="depotSelect"><option value="">-- Select Depot --</option></select>
+                <button class="btn btn-primary" id="analyzeBtn" disabled>Analyse</button>
+                <button class="btn btn-success hidden" id="exportBtn">Export Flagged Items</button>
+            </div>
+        </div>
+        <div class="dashboard hidden" id="dashboard">
+            <div class="stat-cards" id="statCards"></div>
+            <div class="breakdown-panel">
+                <h3>Breakdown</h3>
+                <div class="breakdown-grid" id="breakdownGrid"></div>
+            </div>
+        </div>
+        <div class="results-panel hidden" id="resultsPanel">
+            <div class="results-header">
+                <h3 id="resultsTitle">Results</h3>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="toggleFlagged" onclick="setView('flagged')">Flagged Only</button>
+                    <button class="toggle-btn" id="toggleAll" onclick="setView('all')">All Filtered</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="footer">Stockout Tracker v1.0</div>
+    <script>
+    const COL = {
+        TransactionType:0, PostingDate:1, TransactionNumber:2, TransactionLine:3,
+        FiscalYear:4, Period:5, FromCode:6, ToCode:7, PODocType:8, CompanyCode:9,
+        OPCODesc:10, CostCentre:11, CCDesc:12, PLImpact:13, PLDesc:14,
+        BalanceSheetCode:15, BalanceSheetDesc:16, UOM:17, TransactionQty:18,
+        TransactionValue:19, Plant:20, Store:21, Part:22, PartDesc:23,
+        MtlGroup:24, MtlGroupDesc:25, FleetNumber:26, PO:27, POLine:28,
+        BIN:29, Originator:30, WorkOrder:31, POLineType:32
+    };
+
+    let rawData = [];
+    let filteredData = [];
+    let groupedCounts = {};
+    let flaggedKeys = new Set();
+    let currentView = 'flagged';
+    let currentSort = { col: null, asc: true };
+
+    function initUpload() {
+        const zone = document.getElementById('uploadZone');
+        const input = document.getElementById('fileInput');
+        zone.addEventListener('click', () => input.click());
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        input.addEventListener('change', () => { if (input.files.length) handleFile(input.files[0]); });
+        document.getElementById('depotSelect').addEventListener('change', function() {
+            document.getElementById('analyzeBtn').disabled = !this.value;
+        });
+        document.getElementById('analyzeBtn').addEventListener('click', analyzeData);
+        document.getElementById('exportBtn').addEventListener('click', exportFlagged);
+    }
+
+    function handleFile(file) {
+        if (!file.name.match(/\.xlsx?$/i)) { alert('Please upload an .xlsx file'); return; }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, { type: 'array', cellDates: true });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            processRows(rows);
+            const el = document.getElementById('fileLoaded');
+            el.classList.remove('hidden');
+            el.textContent = '✓ Loaded: ' + file.name + ' (' + rawData.length + ' rows)';
+            document.getElementById('uploadZone').style.display = 'none';
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function processRows(rows) {
+        rawData = [];
+        for (let i = 1; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || !r.length) continue;
+            rawData.push({
+                TransactionType: str(r[COL.TransactionType]),
+                PostingDate: r[COL.PostingDate],
+                TransactionNumber: str(r[COL.TransactionNumber]),
+                TransactionLine: r[COL.TransactionLine],
+                FiscalYear: str(r[COL.FiscalYear]),
+                Period: str(r[COL.Period]),
+                FromCode: str(r[COL.FromCode]),
+                ToCode: str(r[COL.ToCode]),
+                PODocType: str(r[COL.PODocType]),
+                CompanyCode: str(r[COL.CompanyCode]),
+                OPCODesc: str(r[COL.OPCODesc]),
+                CostCentre: str(r[COL.CostCentre]),
+                CCDesc: str(r[COL.CCDesc]),
+                PLImpact: r[COL.PLImpact],
+                PLDesc: str(r[COL.PLDesc]),
+                BalanceSheetCode: str(r[COL.BalanceSheetCode]),
+                BalanceSheetDesc: str(r[COL.BalanceSheetDesc]),
+                UOM: str(r[COL.UOM]),
+                TransactionQty: num(r[COL.TransactionQty]),
+                TransactionValue: num(r[COL.TransactionValue]),
+                Plant: str(r[COL.Plant]),
+                Store: str(r[COL.Store]),
+                Part: str(r[COL.Part]),
+                PartDesc: str(r[COL.PartDesc]),
+                MtlGroup: str(r[COL.MtlGroup]),
+                MtlGroupDesc: str(r[COL.MtlGroupDesc]),
+                FleetNumber: str(r[COL.FleetNumber]),
+                PO: str(r[COL.PO]),
+                POLine: str(r[COL.POLine]),
+                BIN: str(r[COL.BIN]),
+                Originator: str(r[COL.Originator]),
+                WorkOrder: str(r[COL.WorkOrder]),
+                POLineType: str(r[COL.POLineType])
+            });
+        }
+        populateDepotDropdown();
+    }
+
+    function str(v) { return v == null ? '' : String(v).trim(); }
+    function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+    function populateDepotDropdown() {
+        const depots = [...new Set(rawData.map(r => r.CCDesc).filter(Boolean))].sort();
+        const sel = document.getElementById('depotSelect');
+        sel.innerHTML = '<option value="">-- Select Depot (' + depots.length + ' found) --</option>';
+        depots.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+        document.getElementById('controls').classList.remove('hidden');
+    }
+
+    function filterRows(depot) {
+        return rawData.filter(r =>
+            r.CCDesc === depot &&
+            (r.TransactionType.toUpperCase() === 'RECV' ||
+             r.PODocType.toUpperCase() === 'ZVOR' ||
+             r.PODocType.toUpperCase() === 'ZIN')
+        );
+    }
+
+    function groupAndFlag(data) {
+        groupedCounts = {};
+        data.forEach(r => {
+            const key = r.Part + '|' + r.Store + '|' + r.Period;
+            groupedCounts[key] = (groupedCounts[key] || 0) + 1;
+        });
+        flaggedKeys = new Set();
+        for (const [k, v] of Object.entries(groupedCounts)) {
+            if (v >= 2) flaggedKeys.add(k);
+        }
+        data.forEach(r => {
+            const key = r.Part + '|' + r.Store + '|' + r.Period;
+            r._count = groupedCounts[key];
+            r._flagged = flaggedKeys.has(key);
+        });
+    }
+    function analyzeData() {
+        const depot = document.getElementById('depotSelect').value;
+        if (!depot) return;
+        filteredData = filterRows(depot);
+        if (!filteredData.length) {
+            alert('No RECV transfers or Zvor/Zin orders found for ' + depot);
+            return;
+        }
+        groupAndFlag(filteredData);
+        renderDashboard(depot);
+        currentView = 'flagged';
+        renderTable();
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('resultsPanel').classList.remove('hidden');
+        document.getElementById('exportBtn').classList.toggle('hidden', flaggedKeys.size === 0);
+        document.getElementById('toggleFlagged').classList.add('active');
+        document.getElementById('toggleAll').classList.remove('active');
+    }
+
+    function renderDashboard(depot) {
+        const flagged = filteredData.filter(r => r._flagged);
+        const uniqueParts = new Set(flagged.map(r => r.Part)).size;
+        const totalVal = flagged.reduce((s, r) => s + r.TransactionValue, 0);
+        const periods = [...new Set(filteredData.map(r => r.Period))].sort();
+        const recvCount = flagged.filter(r => r.TransactionType.toUpperCase() === 'RECV').length;
+        const emergCount = flagged.length - recvCount;
+
+        document.getElementById('statCards').innerHTML =
+            card('Flagged Parts', uniqueParts, 'Unique parts needing stocking review', 'danger') +
+            card('Flagged Transactions', flagged.length, 'Total rows across flagged parts', 'warning') +
+            card('Value at Risk', '£' + totalVal.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}), 'Sum of flagged transaction values', 'info') +
+            card('Periods Covered', periods.length, periods.join(', '), 'success');
+
+        let periodHtml = '<table class="breakdown-table"><thead><tr><th>Period</th><th>Flagged Parts</th><th>Transactions</th><th>Value</th></tr></thead><tbody>';
+        periods.forEach(p => {
+            const pRows = flagged.filter(r => r.Period === p);
+            const pParts = new Set(pRows.map(r => r.Part)).size;
+            const pVal = pRows.reduce((s, r) => s + r.TransactionValue, 0);
+            periodHtml += '<tr><td>' + esc(p) + '</td><td>' + pParts + '</td><td>' + pRows.length + '</td><td>£' + pVal.toLocaleString('en-GB', {minimumFractionDigits:2}) + '</td></tr>';
+        });
+        periodHtml += '</tbody></table>';
+
+        let sourceHtml = '<table class="breakdown-table"><thead><tr><th>Source</th><th>Count</th><th>%</th></tr></thead><tbody>';
+        const total = flagged.length || 1;
+        sourceHtml += '<tr><td><span class="badge badge-recv">RECV</span> Transfers In</td><td>' + recvCount + '</td><td>' + Math.round(recvCount/total*100) + '%</td></tr>';
+        sourceHtml += '<tr><td><span class="badge badge-emergency">Zvor/Zin</span> Emergency Orders</td><td>' + emergCount + '</td><td>' + Math.round(emergCount/total*100) + '%</td></tr>';
+        sourceHtml += '</tbody></table>';
+
+        document.getElementById('breakdownGrid').innerHTML =
+            '<div><h4 style="margin-bottom:8px;font-size:14px">By Period</h4>' + periodHtml + '</div>' +
+            '<div><h4 style="margin-bottom:8px;font-size:14px">By Source Type</h4>' + sourceHtml + '</div>';
+    }
+
+    function card(label, value, sub, cls) {
+        return '<div class="stat-card ' + cls + '"><div class="label">' + label + '</div><div class="value">' + value + '</div><div class="sub">' + sub + '</div></div>';
+    }
+
+    const TABLE_COLS = [
+        { key: '_flagged', label: '', width: '30px' },
+        { key: 'Part', label: 'Part' },
+        { key: 'PartDesc', label: 'Description' },
+        { key: 'Store', label: 'Store' },
+        { key: 'Period', label: 'Period' },
+        { key: 'TransactionType', label: 'Type' },
+        { key: 'PODocType', label: 'PODocType' },
+        { key: 'TransactionQty', label: 'Qty' },
+        { key: 'TransactionValue', label: 'Value' },
+        { key: 'Originator', label: 'Originator' },
+        { key: '_count', label: 'Occurrences' },
+        { key: 'PostingDate', label: 'Date' }
+    ];
+
+    function renderTable() {
+        let data = currentView === 'flagged' ? filteredData.filter(r => r._flagged) : [...filteredData];
+        data.sort((a, b) => {
+            if (a._flagged !== b._flagged) return a._flagged ? -1 : 1;
+            if (currentSort.col) {
+                let va = a[currentSort.col], vb = b[currentSort.col];
+                if (typeof va === 'number' && typeof vb === 'number') return currentSort.asc ? va - vb : vb - va;
+                va = String(va); vb = String(vb);
+                return currentSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            }
+            return b._count - a._count;
+        });
+
+        let head = '<tr>';
+        TABLE_COLS.forEach(c => {
+            const sorted = currentSort.col === c.key;
+            const arrow = sorted ? (currentSort.asc ? ' ▲' : ' ▼') : ' ⇅';
+            head += '<th class="' + (sorted ? 'sorted' : '') + '" onclick="sortTable(\'' + c.key + '\')">' + c.label + '<span class="sort-arrow">' + (c.key === '_flagged' ? '' : arrow) + '</span></th>';
+        });
+        head += '</tr>';
+        document.getElementById('tableHead').innerHTML = head;
+
+        if (!data.length) {
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="' + TABLE_COLS.length + '" class="no-data">No ' + (currentView === 'flagged' ? 'flagged' : '') + ' items found</td></tr>';
+            document.getElementById('resultsTitle').textContent = 'Results (0 rows)';
+            return;
+        }
+
+        let body = '';
+        data.forEach(r => {
+            const cls = r._flagged ? ' class="flagged-row"' : '';
+            const typeBadge = r.TransactionType.toUpperCase() === 'RECV' ? '<span class="badge badge-recv">RECV</span>' : esc(r.TransactionType);
+            const docBadge = (r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN') ? '<span class="badge badge-emergency">' + esc(r.PODocType) + '</span>' : esc(r.PODocType);
+            const countCls = r._count >= 2 ? 'count-high' : 'count-normal';
+            const dateStr = r.PostingDate instanceof Date ? r.PostingDate.toLocaleDateString('en-GB') : esc(String(r.PostingDate));
+            body += '<tr' + cls + '>' +
+                '<td>' + (r._flagged ? '<span class="flag-icon">⚠</span>' : '') + '</td>' +
+                '<td>' + esc(r.Part) + '</td>' +
+                '<td>' + esc(r.PartDesc) + '</td>' +
+                '<td>' + esc(r.Store) + '</td>' +
+                '<td>' + esc(r.Period) + '</td>' +
+                '<td>' + typeBadge + '</td>' +
+                '<td>' + docBadge + '</td>' +
+                '<td>' + r.TransactionQty + '</td>' +
+                '<td>£' + r.TransactionValue.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}) + '</td>' +
+                '<td>' + esc(r.Originator) + '</td>' +
+                '<td><span class="count-badge ' + countCls + '">' + r._count + '</span></td>' +
+                '<td>' + dateStr + '</td></tr>';
+        });
+        document.getElementById('tableBody').innerHTML = body;
+        document.getElementById('resultsTitle').textContent = 'Results (' + data.length + ' rows)';
+    }
+
+    function sortTable(col) {
+        if (currentSort.col === col) { currentSort.asc = !currentSort.asc; }
+        else { currentSort.col = col; currentSort.asc = true; }
+        renderTable();
+    }
+
+    function setView(view) {
+        currentView = view;
+        document.getElementById('toggleFlagged').classList.toggle('active', view === 'flagged');
+        document.getElementById('toggleAll').classList.toggle('active', view === 'all');
+        renderTable();
+    }
+
+    function exportFlagged() {
+        const flagged = filteredData.filter(r => r._flagged);
+        const out = flagged.map(r => ({
+            Part: r.Part, PartDesc: r.PartDesc, Store: r.Store, Period: r.Period,
+            TransactionType: r.TransactionType, PODocType: r.PODocType,
+            Qty: r.TransactionQty, Value: r.TransactionValue,
+            Originator: r.Originator, Occurrences: r._count,
+            FleetNumber: r.FleetNumber, WorkOrder: r.WorkOrder, BIN: r.BIN
+        }));
+        const ws = XLSX.utils.json_to_sheet(out);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Flagged Items');
+        XLSX.writeFile(wb, 'stockout-flagged-items.xlsx');
+    }
+
+    function esc(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', initUpload);
+    </script>
+</body>
+</html>
