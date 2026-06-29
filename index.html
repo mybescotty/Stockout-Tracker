@@ -251,8 +251,8 @@
             if (r.CCDesc !== depot) return false;
             if (r.PODocType.toUpperCase() === 'NB') return false;
             const isZvorZin = r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN';
-            const isStorToStor = r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
-            return isZvorZin || isStorToStor;
+            const isTransferIn = r.TransactionType.toUpperCase() === 'RECV' && r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
+            return isZvorZin || isTransferIn;
         });
     }
 
@@ -296,7 +296,7 @@
         const uniqueParts = new Set(flagged.map(r => r.Part)).size;
         const totalVal = flagged.reduce((s, r) => s + r.TransactionValue, 0);
         const periods = [...new Set(filteredData.map(r => r.Period))].sort();
-        const transferCount = flagged.filter(r => r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR' && !(r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN')).length;
+        const transferCount = flagged.filter(r => r.TransactionType.toUpperCase() === 'RECV' && r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR').length;
         const emergCount = flagged.filter(r => r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN').length;
 
         document.getElementById('statCards').innerHTML =
@@ -375,9 +375,9 @@
         let body = '';
         data.forEach(r => {
             const cls = r._flagged ? ' class="flagged-row"' : '';
-            const isStorToStor = r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
+            const isTransferIn = r.TransactionType.toUpperCase() === 'RECV' && r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
             const isZvorZin = r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN';
-            const typeBadge = isStorToStor ? '<span class="badge badge-recv">STOR→STOR</span>' : esc(r.TransactionType);
+            const typeBadge = isTransferIn ? '<span class="badge badge-recv">RECV (STOR→STOR)</span>' : esc(r.TransactionType);
             const docBadge = isZvorZin ? '<span class="badge badge-emergency">' + esc(r.PODocType) + '</span>' : esc(r.PODocType);
             const countCls = r._count >= 2 ? 'count-high' : 'count-normal';
             const dateStr = r.PostingDate instanceof Date ? r.PostingDate.toLocaleDateString('en-GB') : esc(String(r.PostingDate));
