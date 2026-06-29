@@ -250,6 +250,7 @@
         return rawData.filter(r => {
             if (r.CCDesc !== depot) return false;
             if (r.PODocType.toUpperCase() === 'NB') return false;
+            if (r.Part.startsWith('90') || r.Part.startsWith('99') || r.Part === '226290') return false;
             const isZvorZin = r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN';
             const isTransferIn = r.TransactionType.toUpperCase() === 'RECV' && r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
             return isZvorZin || isTransferIn;
