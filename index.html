@@ -247,12 +247,13 @@
     }
 
     function filterRows(depot) {
-        return rawData.filter(r =>
-            r.CCDesc === depot &&
-            (r.TransactionType.toUpperCase() === 'RECV' ||
-             r.PODocType.toUpperCase() === 'ZVOR' ||
-             r.PODocType.toUpperCase() === 'ZIN')
-        );
+        return rawData.filter(r => {
+            if (r.CCDesc !== depot) return false;
+            if (r.PODocType.toUpperCase() === 'NB') return false;
+            const isZvorZin = r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN';
+            const isStorToStor = r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
+            return isZvorZin || isStorToStor;
+        });
     }
 
     function groupAndFlag(data) {
@@ -295,8 +296,8 @@
         const uniqueParts = new Set(flagged.map(r => r.Part)).size;
         const totalVal = flagged.reduce((s, r) => s + r.TransactionValue, 0);
         const periods = [...new Set(filteredData.map(r => r.Period))].sort();
-        const recvCount = flagged.filter(r => r.TransactionType.toUpperCase() === 'RECV').length;
-        const emergCount = flagged.length - recvCount;
+        const transferCount = flagged.filter(r => r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR' && !(r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN')).length;
+        const emergCount = flagged.filter(r => r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN').length;
 
         document.getElementById('statCards').innerHTML =
             card('Flagged Parts', uniqueParts, 'Unique parts needing stocking review', 'danger') +
@@ -315,7 +316,7 @@
 
         let sourceHtml = '<table class="breakdown-table"><thead><tr><th>Source</th><th>Count</th><th>%</th></tr></thead><tbody>';
         const total = flagged.length || 1;
-        sourceHtml += '<tr><td><span class="badge badge-recv">RECV</span> Transfers In</td><td>' + recvCount + '</td><td>' + Math.round(recvCount/total*100) + '%</td></tr>';
+        sourceHtml += '<tr><td><span class="badge badge-recv">STOR→STOR</span> Transfers In</td><td>' + transferCount + '</td><td>' + Math.round(transferCount/total*100) + '%</td></tr>';
         sourceHtml += '<tr><td><span class="badge badge-emergency">Zvor/Zin</span> Emergency Orders</td><td>' + emergCount + '</td><td>' + Math.round(emergCount/total*100) + '%</td></tr>';
         sourceHtml += '</tbody></table>';
 
@@ -374,8 +375,10 @@
         let body = '';
         data.forEach(r => {
             const cls = r._flagged ? ' class="flagged-row"' : '';
-            const typeBadge = r.TransactionType.toUpperCase() === 'RECV' ? '<span class="badge badge-recv">RECV</span>' : esc(r.TransactionType);
-            const docBadge = (r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN') ? '<span class="badge badge-emergency">' + esc(r.PODocType) + '</span>' : esc(r.PODocType);
+            const isStorToStor = r.FromCode.toUpperCase() === 'STOR' && r.ToCode.toUpperCase() === 'STOR';
+            const isZvorZin = r.PODocType.toUpperCase() === 'ZVOR' || r.PODocType.toUpperCase() === 'ZIN';
+            const typeBadge = isStorToStor ? '<span class="badge badge-recv">STOR→STOR</span>' : esc(r.TransactionType);
+            const docBadge = isZvorZin ? '<span class="badge badge-emergency">' + esc(r.PODocType) + '</span>' : esc(r.PODocType);
             const countCls = r._count >= 2 ? 'count-high' : 'count-normal';
             const dateStr = r.PostingDate instanceof Date ? r.PostingDate.toLocaleDateString('en-GB') : esc(String(r.PostingDate));
             body += '<tr' + cls + '>' +
