@@ -7,29 +7,34 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
-            --header-bg: #1a1a2e;
-            --primary: #0f3460;
-            --danger: #e94560;
-            --danger-light: #ffeef0;
-            --warning: #f5a623;
-            --info: #4a90d9;
+            /* First Bus Franchise · Engineering brand (matches Warranty Tracker) */
+            --header-bg: #2D2A6E;
+            --primary: #2D2A6E;
+            --accent: #E5007D;
+            --accent-hover: #C0006A;
+            --accent-tint: rgba(229,0,125,0.08);
+            --danger: #e74c3c;
+            --danger-light: rgba(231,76,60,0.10);
+            --warning: #f39c12;
+            --info: #2D2A6E;
             --success: #27ae60;
             --card-bg: #ffffff;
-            --table-stripe: #f8f9fa;
-            --body-bg: #f0f2f5;
-            --text: #333;
-            --text-light: #666;
-            --border: #dee2e6;
+            --table-stripe: #f9f9fb;
+            --body-bg: #f5f5f7;
+            --text: #2D2A6E;
+            --text-light: #6b6b8a;
+            --border: #e0e0ec;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--body-bg); color: var(--text); min-height: 100vh; }
-        .header { background: var(--header-bg); color: white; padding: 20px 32px; }
-        .header h1 { font-size: 24px; font-weight: 600; }
-        .header p { font-size: 14px; opacity: 0.7; margin-top: 4px; }
+        body { font-family: "Segoe UI", Arial, sans-serif; background: var(--body-bg); color: var(--text); min-height: 100vh; }
+        .header { background: var(--header-bg); color: white; padding: 10px 24px; min-height: 56px; display: flex; flex-direction: column; justify-content: center; }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+        .header .tagline { font-size: 10px; opacity: 0.55; letter-spacing: 0.05em; margin-top: 2px; }
         .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
-        .upload-panel { background: var(--card-bg); border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .upload-panel { background: var(--card-bg); border-radius: 8px; padding: 24px; border: 1px solid var(--border); margin-bottom: 24px; }
         .upload-zone { border: 2px dashed var(--border); border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
-        .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary); background: #f0f4ff; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-tint); }
         .upload-zone h3 { font-size: 18px; margin-bottom: 8px; color: var(--primary); }
         .upload-zone p { color: var(--text-light); font-size: 14px; }
         .upload-zone input[type="file"] { display: none; }
@@ -38,14 +43,16 @@
         .controls select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; min-width: 250px; background: white; }
         .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
         .btn:hover { opacity: 0.85; }
-        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); opacity: 1; }
         .btn-danger { background: var(--danger); color: white; }
+        .btn-success:hover { background: #219a52; opacity: 1; }
         .btn-success { background: var(--success); color: white; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .hidden { display: none; }
         .dashboard { margin-bottom: 24px; }
         .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
-        .stat-card { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid var(--primary); }
+        .stat-card { background: var(--card-bg); border-radius: 8px; padding: 16px 18px; border: 1px solid var(--border); border-left: 4px solid var(--primary); }
         .stat-card.danger { border-left-color: var(--danger); }
         .stat-card.warning { border-left-color: var(--warning); }
         .stat-card.success { border-left-color: var(--success); }
@@ -53,60 +60,64 @@
         .stat-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 6px; }
         .stat-card .value { font-size: 28px; font-weight: 700; }
         .stat-card .sub { font-size: 12px; color: var(--text-light); margin-top: 4px; }
-        .breakdown-panel { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .breakdown-panel { background: var(--card-bg); border-radius: 8px; padding: 20px; border: 1px solid var(--border); }
         .breakdown-panel h3 { font-size: 16px; margin-bottom: 12px; color: var(--primary); }
         .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .breakdown-table th { text-align: left; padding: 8px; border-bottom: 2px solid var(--border); font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--text-light); }
         .breakdown-table td { padding: 8px; border-bottom: 1px solid var(--border); }
-        .results-panel { background: var(--card-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .results-panel { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
         .results-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
         .results-header h3 { font-size: 16px; color: var(--primary); }
         .toggle-group { display: flex; gap: 0; }
-        .toggle-btn { padding: 8px 16px; border: 1px solid var(--border); background: white; font-size: 13px; cursor: pointer; }
+        .toggle-btn { padding: 7px 14px; border: 1px solid var(--accent); background: white; color: var(--accent); font-size: 13px; cursor: pointer; }
+        .toggle-btn + .toggle-btn { border-left: none; }
+        .toggle-btn:hover { background: var(--accent-tint); }
         .toggle-btn:first-child { border-radius: 6px 0 0 6px; }
         .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
-        .toggle-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .toggle-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         thead th { position: sticky; top: 0; background: var(--header-bg); color: white; padding: 10px 12px; text-align: left; font-weight: 500; cursor: pointer; white-space: nowrap; user-select: none; }
-        thead th:hover { background: #2a2a4e; }
+        thead th:hover { background: #3a3785; }
         thead th .sort-arrow { margin-left: 4px; opacity: 0.5; }
         thead th.sorted .sort-arrow { opacity: 1; }
         tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
         tbody tr:nth-child(even) { background: var(--table-stripe); }
-        tbody tr:hover { background: #e8f0fe; }
+        tbody tr:hover { background: var(--accent-tint); }
         tbody tr.flagged-row { background: var(--danger-light); }
-        tbody tr.flagged-row:hover { background: #fdd; }
+        tbody tr.flagged-row:hover { background: rgba(231,76,60,0.16); }
         .flag-icon { color: var(--danger); font-weight: 700; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-        .badge-recv { background: #fff3e0; color: #e65100; }
-        .badge-emergency { background: #e3f2fd; color: #1565c0; }
+        .badge-recv { background: rgba(243,156,18,0.18); color: #2D2A6E; }
+        .badge-emergency { background: #2D2A6E; color: #fff; }
         .no-data { padding: 40px; text-align: center; color: var(--text-light); }
         .count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; border-radius: 12px; font-size: 12px; font-weight: 700; }
-        .count-high { background: var(--danger); color: white; }
+        .count-high { background: var(--accent); color: white; }
         .count-normal { background: var(--border); color: var(--text); }
         .footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 12px; }
 
         .tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
         .tab { padding: 10px 18px; border: none; background: transparent; font-size: 14px; font-weight: 500; color: var(--text-light); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
-        .tab:hover { color: var(--primary); }
-        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab:hover { color: var(--accent); }
+        .tab.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--accent); }
+        .tabs input[type=checkbox] { accent-color: var(--accent); }
         .tabs .tab-extra { margin-left: auto; font-size: 13px; color: var(--text-light); padding: 10px 4px; display: flex; align-items: center; gap: 6px; }
-        .card { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card { background: var(--card-bg); border-radius: 8px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
         .card h3 { font-size: 16px; color: var(--primary); margin-bottom: 4px; }
         .card .hint { font-size: 13px; color: var(--text-light); margin-bottom: 14px; }
         .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
         .filter-bar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.4px; }
+        .filter-bar select:focus, .filter-bar input:focus, .controls select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
         .filter-bar select, .filter-bar input[type=text], .filter-bar input[type=number] { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: white; color: var(--text); text-transform: none; letter-spacing: 0; min-width: 140px; }
         .filter-bar .spacer { flex: 1; }
         .grid-wrap { overflow: auto; max-height: 620px; }
         .grid-note { padding: 10px 20px; font-size: 12px; color: var(--text-light); border-top: 1px solid var(--border); }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
-        .badge-out { background: #fdebd9; color: #a94e00; }
-        .badge-in { background: #e3effd; color: #1557b0; }
-        .badge-warn { background: #fff3e0; color: #e65100; }
-        .badge-muted { background: #eceff3; color: #555; }
+        .badge-out { background: #E5007D; color: #fff; }
+        .badge-in { background: #2D2A6E; color: #fff; }
+        .badge-warn { background: #f39c12; color: #2D2A6E; }
+        .badge-muted { background: #e0e0ec; color: #2D2A6E; }
         .flow-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 20px; }
         .flow-svg-wrap { position: relative; }
         .flow-svg-wrap svg { width: 100%; height: auto; display: block; }
@@ -115,7 +126,7 @@
         .flow-node { cursor: pointer; }
         .flow-node circle:first-child { fill: var(--primary); stroke: white; stroke-width: 2; }
         .flow-node text { fill: var(--text); }
-        .flow-node.sel circle:first-child { fill: #e94560; }
+        .flow-node.sel circle:first-child { fill: var(--accent); }
         .flow-node.sel text { font-weight: 700; }
         .flow-node.dim { opacity: 0.25; }
         .flow-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--text-light); margin-top: 10px; }
@@ -131,6 +142,7 @@
         .mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
         .mini-table th, .mini-table td { white-space: normal; }
         #fmSide { overflow-x: auto; }
+        .breakdown-table th, .mini-table th { color: rgba(255,255,255,0.9); }
         .side-section + .side-section { margin-top: 20px; }
         .side-section h4 { font-size: 14px; margin-bottom: 6px; }
         .flow-layout > * { min-width: 0; }
@@ -146,8 +158,9 @@
 </head>
 <body>
     <div class="header">
-        <h1>Stockout Tracker</h1>
+        <h1>📦 Stockout Tracker</h1>
         <p>Identify parts needing permanent stocking — upload transaction data to find repeated transfers and emergency orders</p>
+        <div class="tagline">Designed by First Bus Franchise · Engineering</div>
     </div>
     <div class="container">
         <div class="upload-panel">
@@ -307,9 +320,9 @@
                 <div class="card">
                     <div class="flow-svg-wrap" id="fmSvg"></div>
                     <div class="flow-legend">
-                        <span><i style="background:#8a94a6"></i>Transfer route (thicker = more)</span>
-                        <span><i style="background:#e8710a"></i>Sent out by selected depot</span>
-                        <span><i style="background:#1a73e8"></i>Received by selected depot</span>
+                        <span><i style="background:#a9a8c4"></i>Transfer route (thicker = more)</span>
+                        <span><i style="background:#E5007D"></i>Sent out by selected depot</span>
+                        <span><i style="background:#2D2A6E"></i>Received by selected depot</span>
                         <span>Dot size = total traffic</span>
                     </div>
                     <div class="grid-note" id="fmNote" style="border:none;padding:10px 0 0"></div>
@@ -622,7 +635,7 @@
     // =====================================================================
     const UNKNOWN_FROM = 'Unknown (sender not found)';
     const UNKNOWN_TO = 'Unknown (receipt not found)';
-    const COLOR_OUT = '#e8710a', COLOR_IN = '#1a73e8', COLOR_NEUTRAL = '#8a94a6';
+    const COLOR_OUT = '#E5007D', COLOR_IN = '#2D2A6E', COLOR_NEUTRAL = '#a9a8c4';
 
     let transfers = [];      // paired transfer records
     let zvorZinRows = [];    // all Zvor/Zin rows
@@ -939,7 +952,7 @@
             grid('trGrid', [
                 { key: 'FromDepot', label: 'From' },
                 { key: 'ToDepot', label: 'To' },
-                { key: 'Transfers', label: 'Transfers', num: true, fmt: r => barCell(r.Transfers, max, COLOR_NEUTRAL, r.Transfers.toLocaleString()) },
+                { key: 'Transfers', label: 'Transfers', num: true, fmt: r => barCell(r.Transfers, max, COLOR_IN, r.Transfers.toLocaleString()) },
                 { key: 'Qty', label: 'Qty', num: true, fmt: r => int(r.Qty) },
                 { key: 'Value', label: 'Value', num: true, fmt: r => money(r.Value) },
                 { key: 'Parts', label: 'Parts', num: true },
@@ -1209,7 +1222,7 @@
         let svg = '<svg viewBox="0 0 ' + S + ' ' + S + '" role="img" aria-label="Transfer flow map between depots">' +
             '<defs>' +
             ['n', 'o', 'i'].map((k, j) => '<marker id="arr-' + k + '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="' + [COLOR_NEUTRAL, COLOR_OUT, COLOR_IN][j] + '"/></marker>').join('') +
-            '</defs><circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="none" stroke="#e6e9ef" stroke-width="1"/>';
+            '</defs><circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="none" stroke="#e0e0ec" stroke-width="1"/>';
 
         // edges: thin first so thick ones sit on top
         const order = fmEdges.map((e, i) => i).sort((a, b) => fmEdges[a].M - fmEdges[b].M);
@@ -1312,7 +1325,7 @@
         document.getElementById('fmSvg').querySelectorAll('.flow-edge').forEach(p => {
             const on = +p.dataset.i === i;
             p.setAttribute('stroke-opacity', on ? 0.95 : 0.06);
-            if (on) { p.setAttribute('stroke', '#0f3460'); p.setAttribute('marker-end', 'url(#arr-n)'); }
+            if (on) { p.setAttribute('stroke', '#E5007D'); p.setAttribute('marker-end', 'url(#arr-n)'); }
         });
     }
 
@@ -1331,7 +1344,7 @@
             h += '<h3>Top routes</h3><p class="hint">Ranked by ' + mn + '. Click a depot on the map to see its suppliers and destinations.</p>';
             const top = allEdges.slice(0, 15), max = Math.max(1, ...top.map(e => e.M));
             h += '<table class="mini-table"><thead><tr><th>From → To</th><th class="num">' + mn + '</th></tr></thead><tbody>' +
-                top.map(e => '<tr><td>' + esc(e.FromDepot) + ' → ' + esc(e.ToDepot) + '</td><td class="num" style="min-width:110px">' + barCell(e.M, max, COLOR_NEUTRAL, metricFmt(e.M)) + '</td></tr>').join('') +
+                top.map(e => '<tr><td>' + esc(e.FromDepot) + ' → ' + esc(e.ToDepot) + '</td><td class="num" style="min-width:110px">' + barCell(e.M, max, COLOR_IN, metricFmt(e.M)) + '</td></tr>').join('') +
                 '</tbody></table>';
         }
         const bal = Object.entries(tot).map(([n, v]) => ({ n, out: v.outN, in: v.inN, net: v.inN - v.outN })).sort((a, b) => (b.in + b.out) - (a.in + a.out));
