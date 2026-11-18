@@ -87,10 +87,60 @@
         .count-high { background: var(--danger); color: white; }
         .count-normal { background: var(--border); color: var(--text); }
         .footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 12px; }
+
+        .tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+        .tab { padding: 10px 18px; border: none; background: transparent; font-size: 14px; font-weight: 500; color: var(--text-light); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab:hover { color: var(--primary); }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tabs .tab-extra { margin-left: auto; font-size: 13px; color: var(--text-light); padding: 10px 4px; display: flex; align-items: center; gap: 6px; }
+        .card { background: var(--card-bg); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card h3 { font-size: 16px; color: var(--primary); margin-bottom: 4px; }
+        .card .hint { font-size: 13px; color: var(--text-light); margin-bottom: 14px; }
+        .filter-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+        .filter-bar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.4px; }
+        .filter-bar select, .filter-bar input[type=text], .filter-bar input[type=number] { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: white; color: var(--text); text-transform: none; letter-spacing: 0; min-width: 140px; }
+        .filter-bar .spacer { flex: 1; }
+        .grid-wrap { overflow: auto; max-height: 620px; }
+        .grid-note { padding: 10px 20px; font-size: 12px; color: var(--text-light); border-top: 1px solid var(--border); }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .badge-out { background: #fdebd9; color: #a94e00; }
+        .badge-in { background: #e3effd; color: #1557b0; }
+        .badge-warn { background: #fff3e0; color: #e65100; }
+        .badge-muted { background: #eceff3; color: #555; }
+        .flow-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: 20px; }
+        .flow-svg-wrap { position: relative; }
+        .flow-svg-wrap svg { width: 100%; height: auto; display: block; }
+        .flow-edge { fill: none; transition: stroke-opacity 0.15s, stroke 0.15s; }
+        .flow-hit { fill: none; stroke: transparent; cursor: pointer; }
+        .flow-node { cursor: pointer; }
+        .flow-node circle:first-child { fill: var(--primary); stroke: white; stroke-width: 2; }
+        .flow-node text { fill: var(--text); }
+        .flow-node.sel circle:first-child { fill: #e94560; }
+        .flow-node.sel text { font-weight: 700; }
+        .flow-node.dim { opacity: 0.25; }
+        .flow-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--text-light); margin-top: 10px; }
+        .flow-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .flow-legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; }
+        .tooltip { position: fixed; pointer-events: none; background: var(--header-bg); color: white; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; max-width: 320px; z-index: 50; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+        .tooltip b { font-size: 13px; }
+        .bar-cell { position: relative; }
+        .bar-cell .bar { position: absolute; left: 0; top: 2px; bottom: 2px; border-radius: 0 3px 3px 0; opacity: 0.22; }
+        .bar-cell span { position: relative; }
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .mini-table th { text-align: left; padding: 6px 8px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--text-light); font-weight: 600; }
+        .mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .mini-table th, .mini-table td { white-space: normal; }
+        #fmSide { overflow-x: auto; }
+        .side-section + .side-section { margin-top: 20px; }
+        .side-section h4 { font-size: 14px; margin-bottom: 6px; }
+        .flow-layout > * { min-width: 0; }
+        @media (max-width: 1000px) { .flow-layout { grid-template-columns: minmax(0, 1fr); } }
         @media (max-width: 768px) {
             .breakdown-grid { grid-template-columns: 1fr; }
             .controls { flex-direction: column; align-items: stretch; }
             .controls select { min-width: auto; }
+            .filter-bar label, .filter-bar select, .filter-bar input { width: 100%; }
+            .tabs .tab-extra { margin-left: 0; }
         }
     </style>
 </head>
@@ -107,7 +157,22 @@
                 <input type="file" id="fileInput" accept=".xlsx,.xls">
             </div>
             <div class="file-loaded hidden" id="fileLoaded"></div>
-            <div class="controls hidden" id="controls">
+        </div>
+
+        <div class="tabs hidden" id="tabs">
+            <button class="tab active" data-tab="analysis">Stockout Analysis</button>
+            <button class="tab" data-tab="transfers">Transfers Report</button>
+            <button class="tab" data-tab="orders">Zvor/Zin Orders</button>
+            <button class="tab" data-tab="flow">Transfer Flow Map</button>
+            <label class="tab-extra" title="Leave out parts starting 90 / 99 and part 226290, same as the stockout analysis">
+                <input type="checkbox" id="exclToggle" checked> Apply part exclusions (90*, 99*, 226290)
+            </label>
+        </div>
+
+        <!-- ============ TAB: Stockout analysis (original) ============ -->
+        <section id="tab-analysis" class="tab-panel hidden">
+        <div class="card">
+            <div class="controls" id="controls" style="margin-top:0">
                 <select id="depotSelect"><option value="">-- Select Depot --</option></select>
                 <button class="btn btn-primary" id="analyzeBtn" disabled>Analyse</button>
                 <button class="btn btn-success hidden" id="exportBtn">Export Flagged Items</button>
@@ -135,8 +200,126 @@
                 </table>
             </div>
         </div>
+        </section>
+
+        <!-- ============ TAB: Transfers report ============ -->
+        <section id="tab-transfers" class="tab-panel hidden">
+            <div class="card">
+                <h3>Transfers Report</h3>
+                <p class="hint">Every STOR→STOR transfer in the uploaded data. Each receipt (RECV) is paired with its sending issue row so you can see where it came from. Use the filters, then export for review.</p>
+                <div class="filter-bar">
+                    <label>Depot <select id="trDepot"></select></label>
+                    <label>Direction <select id="trDir">
+                        <option value="both">In &amp; out</option>
+                        <option value="in">Received in</option>
+                        <option value="out">Sent out</option>
+                    </select></label>
+                    <label>From period <select id="trFrom" class="period-from"></select></label>
+                    <label>To period <select id="trTo" class="period-to"></select></label>
+                    <label>Status <select id="trStatus">
+                        <option value="">All</option>
+                        <option value="Matched">Matched (both ends)</option>
+                        <option value="Receipt only">Receipt only (sender not found)</option>
+                        <option value="Issue only">Issue only (receipt not found)</option>
+                    </select></label>
+                    <label>Search <input type="text" id="trSearch" placeholder="Part or description"></label>
+                    <div class="spacer"></div>
+                    <button class="btn btn-success" id="trExport">Export Transfers (.xlsx)</button>
+                </div>
+            </div>
+            <div class="stat-cards" id="trCards"></div>
+            <div class="results-panel">
+                <div class="results-header">
+                    <h3 id="trTitle">Transfers</h3>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-trview="detail">Every transfer</button>
+                        <button class="toggle-btn" data-trview="route">By route</button>
+                        <button class="toggle-btn" data-trview="part">By part</button>
+                    </div>
+                </div>
+                <div class="grid-wrap" id="trGrid"></div>
+                <div class="grid-note" id="trNote"></div>
+            </div>
+        </section>
+
+        <!-- ============ TAB: Zvor/Zin orders ============ -->
+        <section id="tab-orders" class="tab-panel hidden">
+            <div class="card">
+                <h3>Zvor/Zin Ordering Report</h3>
+                <p class="hint">What has been ordered on Zvor/Zin, rolled up by part and store, with the number of transfers-in for the same part alongside, so you can check stock levels. Parts ordered or transferred in repeatedly are marked for a stocking review.</p>
+                <div class="filter-bar">
+                    <label>Depot <select id="orDepot"></select></label>
+                    <label>From period <select id="orFrom" class="period-from"></select></label>
+                    <label>To period <select id="orTo" class="period-to"></select></label>
+                    <label>Doc type <select id="orDoc">
+                        <option value="">Zvor + Zin</option>
+                        <option value="ZVOR">Zvor only</option>
+                        <option value="ZIN">Zin only</option>
+                    </select></label>
+                    <label>Transaction type <select id="orTxn"></select></label>
+                    <label>Review when ≥ <input type="number" id="orThreshold" value="2" min="1" style="min-width:80px;width:80px"></label>
+                    <label>Search <input type="text" id="orSearch" placeholder="Part or description"></label>
+                    <div class="spacer"></div>
+                    <button class="btn btn-success" id="orExport">Export Orders (.xlsx)</button>
+                </div>
+            </div>
+            <div class="stat-cards" id="orCards"></div>
+            <div class="results-panel">
+                <div class="results-header">
+                    <h3 id="orTitle">Orders</h3>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-orview="summary">Summary by part</button>
+                        <button class="toggle-btn" data-orview="detail">Every order line</button>
+                    </div>
+                </div>
+                <div class="grid-wrap" id="orGrid"></div>
+                <div class="grid-note" id="orNote"></div>
+            </div>
+        </section>
+
+        <!-- ============ TAB: Flow map ============ -->
+        <section id="tab-flow" class="tab-panel hidden">
+            <div class="card">
+                <h3>Transfer Flow Map</h3>
+                <p class="hint">Who sends to whom. Each depot sits on the ring; lines run from sender to receiver, and thicker lines mean more transfers. Hover a depot to see its flows, click it to keep it selected, and hover a line for the detail.</p>
+                <div class="filter-bar">
+                    <label>Focus depot <select id="fmFocus"></select></label>
+                    <label>From period <select id="fmFrom" class="period-from"></select></label>
+                    <label>To period <select id="fmTo" class="period-to"></select></label>
+                    <label>Line thickness by <select id="fmMetric">
+                        <option value="count">Number of transfers</option>
+                        <option value="qty">Quantity</option>
+                        <option value="value">Value (£)</option>
+                    </select></label>
+                    <label>Show top routes <select id="fmTop">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="100000">All</option>
+                    </select></label>
+                    <div class="spacer"></div>
+                    <button class="btn btn-success" id="fmExport">Export Routes (.xlsx)</button>
+                </div>
+            </div>
+            <div class="stat-cards" id="fmCards"></div>
+            <div class="flow-layout">
+                <div class="card">
+                    <div class="flow-svg-wrap" id="fmSvg"></div>
+                    <div class="flow-legend">
+                        <span><i style="background:#8a94a6"></i>Transfer route (thicker = more)</span>
+                        <span><i style="background:#e8710a"></i>Sent out by selected depot</span>
+                        <span><i style="background:#1a73e8"></i>Received by selected depot</span>
+                        <span>Dot size = total traffic</span>
+                    </div>
+                    <div class="grid-note" id="fmNote" style="border:none;padding:10px 0 0"></div>
+                </div>
+                <div class="card" id="fmSide"></div>
+            </div>
+        </section>
     </div>
-    <div class="footer">Stockout Tracker v1.0</div>
+    <div class="tooltip hidden" id="tooltip"></div>
+    <div class="footer">Stockout Tracker v1.1</div>
     <script>
     const COL = {
         TransactionType:0, PostingDate:1, TransactionNumber:2, TransactionLine:3,
@@ -183,6 +366,7 @@
             const sheet = wb.Sheets[wb.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
             processRows(rows);
+            onDataLoaded();
             const el = document.getElementById('fileLoaded');
             el.classList.remove('hidden');
             el.textContent = '✓ Loaded: ' + file.name + ' (' + rawData.length + ' rows)';
@@ -243,7 +427,6 @@
         const sel = document.getElementById('depotSelect');
         sel.innerHTML = '<option value="">-- Select Depot (' + depots.length + ' found) --</option>';
         depots.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
-        document.getElementById('controls').classList.remove('hidden');
     }
 
     function filterRows(depot) {
@@ -434,7 +617,765 @@
         return d.innerHTML;
     }
 
-    document.addEventListener('DOMContentLoaded', initUpload);
+    // =====================================================================
+    //  Reports: Transfers, Zvor/Zin orders, Transfer flow map
+    // =====================================================================
+    const UNKNOWN_FROM = 'Unknown (sender not found)';
+    const UNKNOWN_TO = 'Unknown (receipt not found)';
+    const COLOR_OUT = '#e8710a', COLOR_IN = '#1a73e8', COLOR_NEUTRAL = '#8a94a6';
+
+    let transfers = [];      // paired transfer records
+    let zvorZinRows = [];    // all Zvor/Zin rows
+    let allPeriods = [];
+    let trView = 'detail', orView = 'summary';
+    let fmPinned = '';
+    const grids = {};
+
+    function up(s) { return String(s || '').toUpperCase(); }
+    function isStorToStor(r) { return up(r.FromCode) === 'STOR' && up(r.ToCode) === 'STOR'; }
+    function isRecvTransfer(r) { return up(r.TransactionType) === 'RECV' && isStorToStor(r); }
+    function isIssueTransfer(r) { return up(r.TransactionType) !== 'RECV' && isStorToStor(r); }
+    function isZvorZinRow(r) { const d = up(r.PODocType); return d === 'ZVOR' || d === 'ZIN'; }
+    function isExcludedPart(part) { return part.startsWith('90') || part.startsWith('99') || part === '226290'; }
+    function exclOn() { return document.getElementById('exclToggle').checked; }
+
+    function toDate(v) {
+        if (v instanceof Date) return isNaN(v) ? null : v;
+        if (typeof v === 'number' && v > 20000 && v < 80000) return new Date(Math.round((v - 25569) * 864e5));
+        if (typeof v === 'string' && v) {
+            const m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);
+            if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+            const d = new Date(v);
+            return isNaN(d) ? null : d;
+        }
+        return null;
+    }
+    function periodKey(r) {
+        const p = /^\d+$/.test(r.Period) ? String(parseInt(r.Period, 10)).padStart(2, '0') : r.Period;
+        return (r.FiscalYear ? r.FiscalYear + '-' : '') + 'P' + p;
+    }
+    function inPeriodRange(pk, from, to) { return (!from || pk >= from) && (!to || pk <= to); }
+    function money(v) { return '£' + (v || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function int(v) { return (v || 0).toLocaleString('en-GB', { maximumFractionDigits: 2 }); }
+    function fmtDate(d) { return d instanceof Date ? d.toLocaleDateString('en-GB') : ''; }
+    function val(id) { return document.getElementById(id).value; }
+
+    // ---------- Build data after upload ----------
+    function onDataLoaded() {
+        rawData.forEach(r => { r._date = toDate(r.PostingDate); r._pk = periodKey(r); });
+        allPeriods = [...new Set(rawData.map(r => r._pk))].sort();
+        buildTransfers();
+        zvorZinRows = rawData.filter(r => isZvorZinRow(r) && up(r.PODocType) !== 'NB');
+
+        const depots = [...new Set(rawData.map(r => r.CCDesc).filter(Boolean))].sort();
+        ['trDepot', 'orDepot', 'fmFocus'].forEach(id => {
+            const sel = document.getElementById(id);
+            sel.innerHTML = '<option value="">All depots</option>' + depots.map(d => '<option>' + esc(d) + '</option>').join('');
+        });
+        document.querySelectorAll('.period-from').forEach(sel => {
+            sel.innerHTML = '<option value="">Earliest</option>' + allPeriods.map(p => '<option>' + esc(p) + '</option>').join('');
+        });
+        document.querySelectorAll('.period-to').forEach(sel => {
+            sel.innerHTML = '<option value="">Latest</option>' + allPeriods.map(p => '<option>' + esc(p) + '</option>').join('');
+        });
+        const txnTypes = [...new Set(zvorZinRows.map(r => r.TransactionType).filter(Boolean))].sort();
+        document.getElementById('orTxn').innerHTML = '<option value="">All</option>' + txnTypes.map(t => '<option>' + esc(t) + '</option>').join('');
+
+        document.getElementById('tabs').classList.remove('hidden');
+        showTab('analysis');
+    }
+
+    // Pair each RECV (receiving side) with its issue row (sending side).
+    // 1) same PO (+line)  2) same transaction number  3) same part + qty, nearest date (issue up to 45 days before)
+    function buildTransfers() {
+        const recvs = rawData.filter(isRecvTransfer);
+        const sends = rawData.filter(isIssueTransfer);
+        const byPart = {};
+        sends.forEach((s, i) => { (byPart[s.Part] = byPart[s.Part] || []).push(i); });
+        const used = new Set();
+        const match = new Map();
+        const absq = r => Math.abs(r.TransactionQty);
+
+        const pass = (method, test) => {
+            recvs.forEach((r, ri) => {
+                if (match.has(ri)) return;
+                const c = (byPart[r.Part] || []).find(i => !used.has(i) && test(r, sends[i]));
+                if (c != null) { used.add(c); match.set(ri, { s: sends[c], method }); }
+            });
+        };
+        pass('PO', (r, s) => r.PO && s.PO === r.PO && (!r.POLine || !s.POLine || r.POLine === s.POLine));
+        pass('Transaction no.', (r, s) => r.TransactionNumber && s.TransactionNumber === r.TransactionNumber);
+        recvs.forEach((r, ri) => {
+            if (match.has(ri)) return;
+            let best = null, bestD = Infinity;
+            (byPart[r.Part] || []).forEach(i => {
+                if (used.has(i)) return;
+                const s = sends[i];
+                if (Math.abs(absq(s) - absq(r)) > 1e-6) return;
+                if (s.CCDesc === r.CCDesc && s.Store === r.Store) return;
+                const d = (r._date && s._date) ? (r._date - s._date) / 864e5 : 0;
+                if (d < -3 || d > 45) return;
+                if (Math.abs(d) < bestD) { bestD = Math.abs(d); best = i; }
+            });
+            if (best != null) { used.add(best); match.set(ri, { s: sends[best], method: 'Part + qty + date' }); }
+        });
+
+        transfers = [];
+        recvs.forEach((r, ri) => {
+            const m = match.get(ri);
+            const s = m ? m.s : null;
+            transfers.push({
+                Date: r._date || (s && s._date), Period: r._pk, Part: r.Part, PartDesc: r.PartDesc,
+                Qty: absq(r), Value: Math.abs(r.TransactionValue), UOM: r.UOM,
+                FromDepot: s ? (s.CCDesc || '(blank)') : UNKNOWN_FROM, FromStore: s ? s.Store : '',
+                ToDepot: r.CCDesc || '(blank)', ToStore: r.Store,
+                Status: s ? 'Matched' : 'Receipt only', MatchedBy: m ? m.method : '',
+                SentDate: s ? s._date : null, RecvTxn: r.TransactionNumber, SendTxn: s ? s.TransactionNumber : '',
+                PO: r.PO || (s ? s.PO : ''), Originator: r.Originator || (s ? s.Originator : ''),
+                WorkOrder: r.WorkOrder || (s ? s.WorkOrder : ''), FleetNumber: r.FleetNumber || (s ? s.FleetNumber : ''),
+                BIN: r.BIN
+            });
+        });
+        sends.forEach((s, i) => {
+            if (used.has(i)) return;
+            transfers.push({
+                Date: s._date, Period: s._pk, Part: s.Part, PartDesc: s.PartDesc,
+                Qty: absq(s), Value: Math.abs(s.TransactionValue), UOM: s.UOM,
+                FromDepot: s.CCDesc || '(blank)', FromStore: s.Store, ToDepot: UNKNOWN_TO, ToStore: '',
+                Status: 'Issue only', MatchedBy: '', SentDate: s._date, RecvTxn: '', SendTxn: s.TransactionNumber,
+                PO: s.PO, Originator: s.Originator, WorkOrder: s.WorkOrder, FleetNumber: s.FleetNumber, BIN: s.BIN
+            });
+        });
+    }
+
+    // ---------- Tabs ----------
+    function initReports() {
+        document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+        document.getElementById('exclToggle').addEventListener('change', refreshActive);
+        ['trDepot', 'trDir', 'trFrom', 'trTo', 'trStatus'].forEach(id => document.getElementById(id).addEventListener('change', renderTransfers));
+        document.getElementById('trSearch').addEventListener('input', renderTransfers);
+        ['orDepot', 'orFrom', 'orTo', 'orDoc', 'orTxn', 'orThreshold'].forEach(id => document.getElementById(id).addEventListener('change', renderOrders));
+        document.getElementById('orSearch').addEventListener('input', renderOrders);
+        ['fmFrom', 'fmTo', 'fmMetric', 'fmTop'].forEach(id => document.getElementById(id).addEventListener('change', renderFlowMap));
+        document.getElementById('fmFocus').addEventListener('change', e => { fmPinned = e.target.value; renderFlowMap(); });
+        document.querySelectorAll('[data-trview]').forEach(b => b.addEventListener('click', () => {
+            trView = b.dataset.trview;
+            document.querySelectorAll('[data-trview]').forEach(x => x.classList.toggle('active', x === b));
+            renderTransfers();
+        }));
+        document.querySelectorAll('[data-orview]').forEach(b => b.addEventListener('click', () => {
+            orView = b.dataset.orview;
+            document.querySelectorAll('[data-orview]').forEach(x => x.classList.toggle('active', x === b));
+            renderOrders();
+        }));
+        document.getElementById('trExport').addEventListener('click', exportTransfers);
+        document.getElementById('orExport').addEventListener('click', exportOrders);
+        document.getElementById('fmExport').addEventListener('click', exportRoutes);
+    }
+
+    let activeTab = 'analysis';
+    function showTab(name) {
+        activeTab = name;
+        document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'tab-' + name));
+        // Carry the depot picked on the analysis tab across, if the report has none set yet
+        const main = val('depotSelect');
+        if (main) {
+            if (name === 'transfers' && !val('trDepot')) document.getElementById('trDepot').value = main;
+            if (name === 'orders' && !val('orDepot')) document.getElementById('orDepot').value = main;
+            if (name === 'flow' && !fmPinned) { fmPinned = main; document.getElementById('fmFocus').value = main; }
+        }
+        refreshActive();
+    }
+    function refreshActive() {
+        if (activeTab === 'transfers') renderTransfers();
+        else if (activeTab === 'orders') renderOrders();
+        else if (activeTab === 'flow') renderFlowMap();
+    }
+
+    // ---------- Generic sortable table ----------
+    // cols: { key, label, num?, fmt?(row) }
+    function grid(id, cols, rows, opts) {
+        opts = opts || {};
+        const prev = grids[id];
+        const sameCols = prev && prev.cols.map(c => c.key).join() === cols.map(c => c.key).join();
+        grids[id] = {
+            cols, rows, limit: opts.limit || 1000,
+            col: sameCols ? prev.col : (opts.sortCol || null),
+            asc: sameCols ? prev.asc : (opts.asc != null ? opts.asc : true)
+        };
+        drawGrid(id);
+    }
+    function gridSort(id, key) {
+        const g = grids[id];
+        if (g.col === key) g.asc = !g.asc; else { g.col = key; g.asc = !g.cols.find(c => c.key === key).num; }
+        drawGrid(id);
+    }
+    function drawGrid(id) {
+        const g = grids[id];
+        let rows = [...g.rows];
+        if (g.col) {
+            rows.sort((a, b) => {
+                let va = a[g.col], vb = b[g.col];
+                if (va instanceof Date || vb instanceof Date) { va = va ? +va : 0; vb = vb ? +vb : 0; }
+                if (typeof va === 'number' && typeof vb === 'number') return g.asc ? va - vb : vb - va;
+                return g.asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+            });
+        }
+        let h = '<table><thead><tr>';
+        g.cols.forEach(c => {
+            const s = g.col === c.key;
+            h += '<th class="' + (s ? 'sorted' : '') + (c.num ? ' num' : '') + '" onclick="gridSort(\'' + id + '\',\'' + c.key + '\')">' + c.label +
+                '<span class="sort-arrow">' + (s ? (g.asc ? ' ▲' : ' ▼') : ' ⇅') + '</span></th>';
+        });
+        h += '</tr></thead><tbody>';
+        if (!rows.length) h += '<tr><td colspan="' + g.cols.length + '" class="no-data">Nothing matches these filters</td></tr>';
+        rows.slice(0, g.limit).forEach(r => {
+            h += '<tr' + (r._rowCls ? ' class="' + r._rowCls + '"' : '') + '>';
+            g.cols.forEach(c => { h += '<td' + (c.num ? ' class="num"' : '') + '>' + (c.fmt ? c.fmt(r) : esc(r[c.key] == null ? '' : String(r[c.key]))) + '</td>'; });
+            h += '</tr>';
+        });
+        h += '</tbody></table>';
+        document.getElementById(id).innerHTML = h;
+    }
+
+    function exportBook(filename, sheets) {
+        const wb = XLSX.utils.book_new();
+        sheets.forEach(sh => {
+            const ws = XLSX.utils.json_to_sheet(sh.rows.length ? sh.rows : [{ Note: 'No rows for the selected filters' }], { cellDates: true, dateNF: 'dd/mm/yyyy' });
+            const keys = Object.keys(sh.rows[0] || { Note: 1 });
+            ws['!cols'] = keys.map(k => ({ wch: Math.min(45, Math.max(k.length, ...sh.rows.slice(0, 300).map(r => {
+                const v = r[k]; return v instanceof Date ? 10 : String(v == null ? '' : v).length;
+            })) + 2) }));
+            if (sh.rows.length) ws['!autofilter'] = { ref: ws['!ref'] };
+            XLSX.utils.book_append_sheet(wb, ws, sh.name.slice(0, 31));
+        });
+        XLSX.writeFile(wb, filename);
+    }
+    function fileTag(depot, from, to) {
+        const d = (depot || 'All-depots').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const p = (from || to) ? '_' + (from || 'start') + '_to_' + (to || 'end') : '';
+        return d + p;
+    }
+    function periodLabel(from, to) {
+        if (!from && !to) return 'All periods';
+        return (from || allPeriods[0] || '') + ' to ' + (to || allPeriods[allPeriods.length - 1] || '');
+    }
+
+    // ---------- Transfers report ----------
+    function filteredTransfers() {
+        const depot = val('trDepot'), dir = val('trDir'), from = val('trFrom'), to = val('trTo');
+        const status = val('trStatus'), q = val('trSearch').trim().toLowerCase(), ex = exclOn();
+        return transfers.filter(t => {
+            if (ex && isExcludedPart(t.Part)) return false;
+            if (!inPeriodRange(t.Period, from, to)) return false;
+            if (status && t.Status !== status) return false;
+            if (depot) {
+                const isIn = t.ToDepot === depot, isOut = t.FromDepot === depot;
+                if (dir === 'in' ? !isIn : dir === 'out' ? !isOut : !(isIn || isOut)) return false;
+            }
+            if (q && !(t.Part.toLowerCase().includes(q) || t.PartDesc.toLowerCase().includes(q))) return false;
+            return true;
+        });
+    }
+    function groupTransfers(list, keyFn, init) {
+        const m = new Map();
+        list.forEach(t => {
+            const k = keyFn(t);
+            let g = m.get(k);
+            if (!g) { g = Object.assign({ Transfers: 0, Qty: 0, Value: 0, _parts: new Set(), _periods: new Set(), _last: null }, init(t)); m.set(k, g); }
+            g.Transfers++; g.Qty += t.Qty; g.Value += t.Value; g._parts.add(t.Part); g._periods.add(t.Period);
+            if (t.Date && (!g._last || t.Date > g._last)) g._last = t.Date;
+        });
+        return [...m.values()].map(g => Object.assign(g, { Parts: g._parts.size, Periods: g._periods.size, LastDate: g._last }));
+    }
+    function routeRows(list) {
+        return groupTransfers(list, t => t.FromDepot + '\u0000' + t.ToDepot, t => ({ FromDepot: t.FromDepot, ToDepot: t.ToDepot }));
+    }
+
+    const DIR_BADGE = t => {
+        const depot = val('trDepot');
+        if (!depot) return '';
+        if (t.ToDepot === depot) return '<span class="badge badge-in">IN</span>';
+        if (t.FromDepot === depot) return '<span class="badge badge-out">OUT</span>';
+        return '';
+    };
+    const STATUS_BADGE = t => t.Status === 'Matched' ? '<span class="badge badge-muted">Matched</span>' : '<span class="badge badge-warn">' + esc(t.Status) + '</span>';
+
+    function renderTransfers() {
+        const list = filteredTransfers();
+        const depot = val('trDepot');
+        list.forEach(t => { t._dir = !depot ? '' : t.ToDepot === depot ? 'IN' : 'OUT'; });
+        const ins = depot ? list.filter(t => t.ToDepot === depot).length : null;
+        const outs = depot ? list.filter(t => t.FromDepot === depot).length : null;
+        const matched = list.filter(t => t.Status === 'Matched').length;
+        document.getElementById('trCards').innerHTML =
+            card('Transfers', list.length.toLocaleString(), depot ? ins + ' received in · ' + outs + ' sent out' : 'All depots · ' + periodLabel(val('trFrom'), val('trTo')), 'info') +
+            card('Total Quantity', int(list.reduce((s, t) => s + t.Qty, 0)), 'Units moved', 'success') +
+            card('Total Value', money(list.reduce((s, t) => s + t.Value, 0)), 'Value of stock moved', 'warning') +
+            card('Unique Parts', new Set(list.map(t => t.Part)).size.toLocaleString(), (list.length ? Math.round(matched / list.length * 100) : 0) + '% paired to both ends', 'danger');
+
+        if (trView === 'detail') {
+            document.getElementById('trTitle').textContent = 'Every transfer (' + list.length.toLocaleString() + ')';
+            grid('trGrid', [
+                { key: 'Date', label: 'Date', fmt: t => fmtDate(t.Date) },
+                { key: 'Period', label: 'Period' },
+                ...(depot ? [{ key: '_dir', label: 'In/Out', fmt: DIR_BADGE }] : []),
+                { key: 'Part', label: 'Part' },
+                { key: 'PartDesc', label: 'Description' },
+                { key: 'Qty', label: 'Qty', num: true, fmt: t => int(t.Qty) },
+                { key: 'Value', label: 'Value', num: true, fmt: t => money(t.Value) },
+                { key: 'FromDepot', label: 'From', fmt: t => esc(t.FromDepot) + (t.FromStore ? ' <span style="color:var(--text-light)">(' + esc(t.FromStore) + ')</span>' : '') },
+                { key: 'ToDepot', label: 'To', fmt: t => esc(t.ToDepot) + (t.ToStore ? ' <span style="color:var(--text-light)">(' + esc(t.ToStore) + ')</span>' : '') },
+                { key: 'Status', label: 'Status', fmt: STATUS_BADGE },
+                { key: 'Originator', label: 'Originator' },
+                { key: 'WorkOrder', label: 'Work Order' },
+                { key: 'RecvTxn', label: 'Receipt Txn' }
+            ], list, { sortCol: 'Date', asc: false });
+        } else if (trView === 'route') {
+            const rows = routeRows(list);
+            document.getElementById('trTitle').textContent = 'By route (' + rows.length.toLocaleString() + ' routes)';
+            const max = Math.max(1, ...rows.map(r => r.Transfers));
+            grid('trGrid', [
+                { key: 'FromDepot', label: 'From' },
+                { key: 'ToDepot', label: 'To' },
+                { key: 'Transfers', label: 'Transfers', num: true, fmt: r => barCell(r.Transfers, max, COLOR_NEUTRAL, r.Transfers.toLocaleString()) },
+                { key: 'Qty', label: 'Qty', num: true, fmt: r => int(r.Qty) },
+                { key: 'Value', label: 'Value', num: true, fmt: r => money(r.Value) },
+                { key: 'Parts', label: 'Parts', num: true },
+                { key: 'LastDate', label: 'Last transfer', fmt: r => fmtDate(r.LastDate) }
+            ], rows, { sortCol: 'Transfers', asc: false });
+        } else {
+            const rows = groupTransfers(list, t => t.Part, t => ({ Part: t.Part, PartDesc: t.PartDesc }));
+            // most common sender per part
+            const srcCount = {};
+            list.forEach(t => { const k = t.Part; (srcCount[k] = srcCount[k] || {}); srcCount[k][t.FromDepot] = (srcCount[k][t.FromDepot] || 0) + 1; });
+            rows.forEach(r => {
+                const s = Object.entries(srcCount[r.Part] || {}).sort((a, b) => b[1] - a[1])[0];
+                r.TopSource = s ? s[0] + ' (' + s[1] + ')' : '';
+            });
+            document.getElementById('trTitle').textContent = 'By part (' + rows.length.toLocaleString() + ' parts)';
+            grid('trGrid', [
+                { key: 'Part', label: 'Part' },
+                { key: 'PartDesc', label: 'Description' },
+                { key: 'Transfers', label: 'Transfers', num: true },
+                { key: 'Qty', label: 'Qty', num: true, fmt: r => int(r.Qty) },
+                { key: 'Value', label: 'Value', num: true, fmt: r => money(r.Value) },
+                { key: 'Periods', label: 'Periods', num: true },
+                { key: 'TopSource', label: 'Usually comes from' },
+                { key: 'LastDate', label: 'Last transfer', fmt: r => fmtDate(r.LastDate) }
+            ], rows, { sortCol: 'Transfers', asc: false });
+        }
+        document.getElementById('trNote').textContent = (drawGridNote('trGrid') ? drawGridNote('trGrid') + ' ' : '') +
+            'Pairing: receipts are matched to the sending issue row by PO, then transaction number, then same part + quantity within 45 days.';
+    }
+    function drawGridNote(id) {
+        const g = grids[id];
+        return g && g.rows.length > g.limit ? 'Showing the first ' + g.limit.toLocaleString() + ' of ' + g.rows.length.toLocaleString() + ' rows; the export includes all of them.' : '';
+    }
+    function barCell(v, max, color, label) {
+        return '<div class="bar-cell"><div class="bar" style="width:' + Math.max(2, v / max * 100) + '%;background:' + color + '"></div><span>' + label + '</span></div>';
+    }
+
+    function exportTransfers() {
+        const list = filteredTransfers().slice().sort((a, b) => (b.Date || 0) - (a.Date || 0));
+        const detail = list.map(t => ({
+            'Date Received': t.Status === 'Issue only' ? null : t.Date, 'Date Sent': t.SentDate, Period: t.Period,
+            Part: t.Part, Description: t.PartDesc, Qty: t.Qty, UOM: t.UOM, Value: +t.Value.toFixed(2),
+            'From Depot': t.FromDepot, 'From Store': t.FromStore, 'To Depot': t.ToDepot, 'To Store': t.ToStore,
+            Status: t.Status, 'Matched By': t.MatchedBy, Originator: t.Originator, 'Work Order': t.WorkOrder,
+            'Fleet Number': t.FleetNumber, PO: t.PO, 'Receipt Txn': t.RecvTxn, 'Issue Txn': t.SendTxn, BIN: t.BIN
+        }));
+        const routes = routeRows(list).sort((a, b) => b.Transfers - a.Transfers).map(r => ({
+            'From Depot': r.FromDepot, 'To Depot': r.ToDepot, Transfers: r.Transfers, Qty: r.Qty,
+            Value: +r.Value.toFixed(2), 'Unique Parts': r.Parts, 'Last Transfer': r.LastDate
+        }));
+        const parts = groupTransfers(list, t => t.Part, t => ({ Part: t.Part, PartDesc: t.PartDesc }))
+            .sort((a, b) => b.Transfers - a.Transfers).map(r => ({
+                Part: r.Part, Description: r.PartDesc, Transfers: r.Transfers, Qty: r.Qty,
+                Value: +r.Value.toFixed(2), 'Periods Seen': r.Periods, 'Last Transfer': r.LastDate
+            }));
+        exportBook('transfers_' + fileTag(val('trDepot'), val('trFrom'), val('trTo')) + '.xlsx', [
+            { name: 'Transfers', rows: detail }, { name: 'By Route', rows: routes }, { name: 'By Part', rows: parts }
+        ]);
+    }
+
+    // ---------- Zvor/Zin orders report ----------
+    function filteredOrders() {
+        const depot = val('orDepot'), from = val('orFrom'), to = val('orTo'), doc = val('orDoc'), txn = val('orTxn');
+        const q = val('orSearch').trim().toLowerCase(), ex = exclOn();
+        return zvorZinRows.filter(r => {
+            if (ex && isExcludedPart(r.Part)) return false;
+            if (depot && r.CCDesc !== depot) return false;
+            if (!inPeriodRange(r._pk, from, to)) return false;
+            if (doc && up(r.PODocType) !== doc) return false;
+            if (txn && r.TransactionType !== txn) return false;
+            if (q && !(r.Part.toLowerCase().includes(q) || r.PartDesc.toLowerCase().includes(q))) return false;
+            return true;
+        });
+    }
+    function orderSummary(list) {
+        const depot = val('orDepot'), from = val('orFrom'), to = val('orTo'), ex = exclOn();
+        const threshold = Math.max(1, parseInt(val('orThreshold'), 10) || 2);
+        // transfers in for the same part (+depot when a depot is chosen), same period window
+        const tin = {};
+        transfers.forEach(t => {
+            if (t.Status === 'Issue only') return;
+            if (ex && isExcludedPart(t.Part)) return;
+            if (!inPeriodRange(t.Period, from, to)) return;
+            if (depot && t.ToDepot !== depot) return;
+            const k = t.Part + '|' + t.ToDepot;
+            tin[k] = tin[k] || { n: 0, q: 0 };
+            tin[k].n++; tin[k].q += t.Qty;
+        });
+        const m = new Map();
+        list.forEach(r => {
+            const k = r.Part + '|' + r.CCDesc + '|' + r.Store;
+            let g = m.get(k);
+            if (!g) {
+                g = { Part: r.Part, PartDesc: r.PartDesc, Depot: r.CCDesc, Store: r.Store, UOM: r.UOM,
+                      Orders: 0, ZVOR: 0, ZIN: 0, Qty: 0, Value: 0, _periods: new Set(), First: null, Last: null, _wos: new Set() };
+                m.set(k, g);
+            }
+            g.Orders++; g.Qty += Math.abs(r.TransactionQty); g.Value += Math.abs(r.TransactionValue);
+            if (up(r.PODocType) === 'ZVOR') g.ZVOR++; else g.ZIN++;
+            g._periods.add(r._pk);
+            if (r.WorkOrder) g._wos.add(r.WorkOrder);
+            if (r._date) { if (!g.First || r._date < g.First) g.First = r._date; if (!g.Last || r._date > g.Last) g.Last = r._date; }
+        });
+        return [...m.values()].map(g => {
+            const ti = tin[g.Part + '|' + g.Depot] || { n: 0, q: 0 };
+            g.Periods = g._periods.size;
+            g.AvgQty = g.Orders ? g.Qty / g.Orders : 0;
+            g.TransfersIn = ti.n; g.TransferQty = ti.q;
+            g.Demand = g.Orders + ti.n;
+            g.WorkOrders = g._wos.size;
+            g.Review = g.Demand >= threshold ? 'Review stocking' : '';
+            g._rowCls = g.Review ? 'flagged-row' : '';
+            return g;
+        });
+    }
+    function renderOrders() {
+        const list = filteredOrders();
+        const summary = orderSummary(list);
+        const review = summary.filter(s => s.Review);
+        document.getElementById('orCards').innerHTML =
+            card('Order Lines', list.length.toLocaleString(), list.filter(r => up(r.PODocType) === 'ZVOR').length + ' Zvor · ' + list.filter(r => up(r.PODocType) === 'ZIN').length + ' Zin', 'info') +
+            card('Parts Ordered', summary.length.toLocaleString(), (val('orDepot') || 'All depots') + ' · ' + periodLabel(val('orFrom'), val('orTo')), 'success') +
+            card('Order Value', money(list.reduce((s, r) => s + Math.abs(r.TransactionValue), 0)), 'Total of the order lines shown', 'warning') +
+            card('Stocking Review', review.length.toLocaleString(), 'Parts with orders + transfers-in ≥ ' + (parseInt(val('orThreshold'), 10) || 2), 'danger');
+
+        if (orView === 'summary') {
+            document.getElementById('orTitle').textContent = 'Summary by part (' + summary.length.toLocaleString() + ')';
+            grid('orGrid', [
+                { key: 'Review', label: '', fmt: r => r.Review ? '<span class="flag-icon" title="Review stocking">⚠</span>' : '' },
+                { key: 'Part', label: 'Part' },
+                { key: 'PartDesc', label: 'Description' },
+                { key: 'Depot', label: 'Depot' },
+                { key: 'Store', label: 'Store' },
+                { key: 'Orders', label: 'Orders', num: true },
+                { key: 'ZVOR', label: 'Zvor', num: true },
+                { key: 'ZIN', label: 'Zin', num: true },
+                { key: 'Qty', label: 'Qty Ordered', num: true, fmt: r => int(r.Qty) },
+                { key: 'AvgQty', label: 'Avg / Order', num: true, fmt: r => int(+r.AvgQty.toFixed(2)) },
+                { key: 'Value', label: 'Value', num: true, fmt: r => money(r.Value) },
+                { key: 'TransfersIn', label: 'Transfers In', num: true },
+                { key: 'Demand', label: 'Total Demand', num: true, fmt: r => '<span class="count-badge ' + (r.Review ? 'count-high' : 'count-normal') + '">' + r.Demand + '</span>' },
+                { key: 'Periods', label: 'Periods', num: true },
+                { key: 'Last', label: 'Last Ordered', fmt: r => fmtDate(r.Last) }
+            ], summary, { sortCol: 'Demand', asc: false });
+        } else {
+            document.getElementById('orTitle').textContent = 'Every order line (' + list.length.toLocaleString() + ')';
+            grid('orGrid', [
+                { key: '_date', label: 'Date', fmt: r => fmtDate(r._date) },
+                { key: '_pk', label: 'Period' },
+                { key: 'PODocType', label: 'Doc Type', fmt: r => '<span class="badge badge-emergency">' + esc(r.PODocType) + '</span>' },
+                { key: 'TransactionType', label: 'Txn Type' },
+                { key: 'Part', label: 'Part' },
+                { key: 'PartDesc', label: 'Description' },
+                { key: 'CCDesc', label: 'Depot' },
+                { key: 'Store', label: 'Store' },
+                { key: 'TransactionQty', label: 'Qty', num: true, fmt: r => int(r.TransactionQty) },
+                { key: 'TransactionValue', label: 'Value', num: true, fmt: r => money(r.TransactionValue) },
+                { key: 'PO', label: 'PO' },
+                { key: 'Originator', label: 'Originator' },
+                { key: 'WorkOrder', label: 'Work Order' },
+                { key: 'FleetNumber', label: 'Fleet' }
+            ], list, { sortCol: '_date', asc: false });
+        }
+        const types = [...new Set(list.map(r => r.TransactionType))];
+        document.getElementById('orNote').textContent = (drawGridNote('orGrid') ? drawGridNote('orGrid') + ' ' : '') +
+            'Total demand = Zvor/Zin order lines + transfers in of the same part to the same depot in the same periods.' +
+            (types.length > 1 ? ' These lines include more than one transaction type (' + types.join(', ') + '); if the same order shows up twice, pick a single type with the Transaction type filter.' : '');
+    }
+    function exportOrders() {
+        const list = filteredOrders();
+        const summary = orderSummary(list).sort((a, b) => b.Demand - a.Demand || b.Orders - a.Orders).map(g => ({
+            'Review': g.Review, Part: g.Part, Description: g.PartDesc, Depot: g.Depot, Store: g.Store, UOM: g.UOM,
+            'Order Lines': g.Orders, Zvor: g.ZVOR, Zin: g.ZIN, 'Qty Ordered': g.Qty, 'Avg Qty / Order': +g.AvgQty.toFixed(2),
+            Value: +g.Value.toFixed(2), 'Transfers In': g.TransfersIn, 'Transfer Qty In': g.TransferQty,
+            'Total Demand': g.Demand, 'Periods Ordered': g.Periods, 'Work Orders': g.WorkOrders,
+            'First Ordered': g.First, 'Last Ordered': g.Last
+        }));
+        const detail = list.slice().sort((a, b) => (b._date || 0) - (a._date || 0)).map(r => ({
+            Date: r._date, Period: r._pk, 'Doc Type': r.PODocType, 'Txn Type': r.TransactionType, Part: r.Part,
+            Description: r.PartDesc, Depot: r.CCDesc, Store: r.Store, Qty: r.TransactionQty, UOM: r.UOM,
+            Value: r.TransactionValue, PO: r.PO, 'PO Line': r.POLine, Originator: r.Originator,
+            'Work Order': r.WorkOrder, 'Fleet Number': r.FleetNumber, BIN: r.BIN, 'Transaction No.': r.TransactionNumber
+        }));
+        exportBook('zvor-zin-orders_' + fileTag(val('orDepot'), val('orFrom'), val('orTo')) + '.xlsx', [
+            { name: 'Order Summary', rows: summary }, { name: 'Order Lines', rows: detail }
+        ]);
+    }
+
+    // ---------- Flow map ----------
+    let fmEdges = [], fmNodes = [];
+    function flowData() {
+        const from = val('fmFrom'), to = val('fmTo'), ex = exclOn();
+        const list = transfers.filter(t => (!ex || !isExcludedPart(t.Part)) && inPeriodRange(t.Period, from, to));
+        const paired = list.filter(t => t.Status === 'Matched' && t.FromDepot !== t.ToDepot);
+        return { list, paired };
+    }
+    function metricOf(e) { const m = val('fmMetric'); return m === 'qty' ? e.Qty : m === 'value' ? e.Value : e.Transfers; }
+    function metricFmt(v) { const m = val('fmMetric'); return m === 'value' ? money(v) : int(v); }
+    function metricName() { const m = val('fmMetric'); return m === 'qty' ? 'qty' : m === 'value' ? 'value' : 'transfers'; }
+
+    function renderFlowMap() {
+        const { list, paired } = flowData();
+        const allEdges = routeRows(paired);
+        allEdges.forEach(e => { e._partCount = {}; });
+        const edgeIdx = new Map(allEdges.map(e => [e.FromDepot + '\u0000' + e.ToDepot, e]));
+        paired.forEach(t => {
+            const e = edgeIdx.get(t.FromDepot + '\u0000' + t.ToDepot);
+            const p = e._partCount[t.Part] = e._partCount[t.Part] || { d: t.PartDesc, n: 0 };
+            p.n++;
+        });
+        allEdges.forEach(e => { e.M = metricOf(e); });
+        allEdges.sort((a, b) => b.M - a.M);
+        const topN = parseInt(val('fmTop'), 10);
+        let shown = allEdges.slice(0, topN);
+        // Always keep every route touching the focus depot
+        if (fmPinned) shown = allEdges.filter((e, i) => i < topN || e.FromDepot === fmPinned || e.ToDepot === fmPinned);
+        fmEdges = shown;
+
+        // node totals over all routes (not just those shown)
+        const tot = {};
+        allEdges.forEach(e => {
+            (tot[e.FromDepot] = tot[e.FromDepot] || { out: 0, in: 0, outN: 0, inN: 0, outV: 0, inV: 0 });
+            (tot[e.ToDepot] = tot[e.ToDepot] || { out: 0, in: 0, outN: 0, inN: 0, outV: 0, inV: 0 });
+            tot[e.FromDepot].out += e.M; tot[e.ToDepot].in += e.M;
+            tot[e.FromDepot].outN += e.Transfers; tot[e.ToDepot].inN += e.Transfers;
+            tot[e.FromDepot].outV += e.Value; tot[e.ToDepot].inV += e.Value;
+        });
+        const nodeNames = [...new Set(shown.flatMap(e => [e.FromDepot, e.ToDepot]))].sort();
+        if (fmPinned && !nodeNames.includes(fmPinned) && tot[fmPinned]) nodeNames.push(fmPinned);
+        fmNodes = nodeNames.map(n => Object.assign({ name: n }, tot[n] || { out: 0, in: 0, outN: 0, inN: 0, outV: 0, inV: 0 }));
+
+        // Cards
+        const unpaired = list.filter(t => t.Status !== 'Matched').length;
+        const busiest = allEdges[0];
+        const depotTot = Object.entries(tot).map(([n, v]) => ({ n, v: v.outN + v.inN })).sort((a, b) => b.v - a.v)[0];
+        document.getElementById('fmCards').innerHTML =
+            card('Routes', allEdges.length.toLocaleString(), 'Distinct depot → depot pairs', 'info') +
+            card('Transfers Mapped', paired.length.toLocaleString(), periodLabel(val('fmFrom'), val('fmTo')), 'success') +
+            card('Busiest Route', busiest ? busiest.Transfers.toLocaleString() : '–', busiest ? esc(busiest.FromDepot) + ' → ' + esc(busiest.ToDepot) : 'No paired transfers', 'warning') +
+            card('Busiest Depot', depotTot ? depotTot.v.toLocaleString() : '–', depotTot ? esc(depotTot.n) + ' (sent + received)' : '', 'danger');
+
+        document.getElementById('fmNote').textContent =
+            (allEdges.length > shown.length ? 'Showing ' + shown.length + ' of ' + allEdges.length + ' routes. ' : '') +
+            (unpaired ? unpaired.toLocaleString() + ' transfers could not be paired to both ends, so they are left off the map; you can see them in the Transfers Report (Status filter).' : '');
+
+        drawFlowSvg();
+        renderFlowSide(allEdges, tot);
+    }
+
+    function drawFlowSvg() {
+        const wrap = document.getElementById('fmSvg');
+        if (!fmNodes.length) { wrap.innerHTML = '<div class="no-data">No paired transfers between different depots for these filters.</div>'; return; }
+        const S = 1000, C = S / 2, n = fmNodes.length;
+        const R = n > 40 ? 300 : 320;
+        const fontSize = n > 45 ? 10 : n > 30 ? 11.5 : 13;
+        const maxLabel = n > 30 ? 22 : 26;
+        const maxM = Math.max(1, ...fmEdges.map(e => e.M));
+        const maxNode = Math.max(1, ...fmNodes.map(d => d.out + d.in));
+        const pos = {};
+        fmNodes.forEach((d, i) => {
+            const a = -Math.PI / 2 + i / n * Math.PI * 2;
+            d.a = a; d.x = C + R * Math.cos(a); d.y = C + R * Math.sin(a);
+            d.r = 5 + 11 * Math.sqrt((d.out + d.in) / maxNode);
+            pos[d.name] = d;
+        });
+
+        let svg = '<svg viewBox="0 0 ' + S + ' ' + S + '" role="img" aria-label="Transfer flow map between depots">' +
+            '<defs>' +
+            ['n', 'o', 'i'].map((k, j) => '<marker id="arr-' + k + '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="' + [COLOR_NEUTRAL, COLOR_OUT, COLOR_IN][j] + '"/></marker>').join('') +
+            '</defs><circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="none" stroke="#e6e9ef" stroke-width="1"/>';
+
+        // edges: thin first so thick ones sit on top
+        const order = fmEdges.map((e, i) => i).sort((a, b) => fmEdges[a].M - fmEdges[b].M);
+        let edgesSvg = '', hitSvg = '';
+        order.forEach(i => {
+            const e = fmEdges[i], s = pos[e.FromDepot], t = pos[e.ToDepot];
+            if (!s || !t) return;
+            const dx = t.x - s.x, dy = t.y - s.y, dist = Math.hypot(dx, dy) || 1;
+            const mx = (s.x + t.x) / 2, my = (s.y + t.y) / 2;
+            // pull towards centre, offset sideways by direction so A→B and B→A separate
+            const px = -dy / dist, py = dx / dist;
+            const cx = mx + (C - mx) * 0.35 + px * dist * 0.12, cy = my + (C - my) * 0.35 + py * dist * 0.12;
+            const trim = (node, ax, ay, pad) => { const vx = ax - node.x, vy = ay - node.y, l = Math.hypot(vx, vy) || 1; return [node.x + vx / l * (node.r + pad), node.y + vy / l * (node.r + pad)]; };
+            const [x1, y1] = trim(s, cx, cy, 2), [x2, y2] = trim(t, cx, cy, 4);
+            const w = 1.2 + 9 * Math.sqrt(e.M / maxM);
+            const d = 'M' + x1.toFixed(1) + ',' + y1.toFixed(1) + ' Q' + cx.toFixed(1) + ',' + cy.toFixed(1) + ' ' + x2.toFixed(1) + ',' + y2.toFixed(1);
+            const op = 0.25 + 0.5 * Math.sqrt(e.M / maxM);
+            edgesSvg += '<path class="flow-edge" data-i="' + i + '" d="' + d + '" stroke="' + COLOR_NEUTRAL + '" stroke-width="' + w.toFixed(2) + '" stroke-opacity="' + op.toFixed(2) + '" stroke-linecap="round" marker-end="url(#arr-n)" data-op="' + op.toFixed(2) + '"/>';
+            hitSvg += '<path class="flow-hit" data-i="' + i + '" d="' + d + '" stroke-width="' + Math.max(12, w + 6).toFixed(1) + '"/>';
+        });
+        svg += '<g id="fmEdges">' + edgesSvg + '</g><g>' + hitSvg + '</g><g id="fmNodesG">';
+        fmNodes.forEach((d, i) => {
+            const deg = d.a * 180 / Math.PI;
+            const left = Math.cos(d.a) < -1e-6;
+            const lx = C + (R + d.r + 8) * Math.cos(d.a), ly = C + (R + d.r + 8) * Math.sin(d.a);
+            const label = d.name.length > maxLabel ? d.name.slice(0, maxLabel - 1) + '…' : d.name;
+            svg += '<g class="flow-node" data-n="' + i + '">' +
+                '<circle cx="' + d.x.toFixed(1) + '" cy="' + d.y.toFixed(1) + '" r="' + d.r.toFixed(1) + '"/>' +
+                '<circle cx="' + d.x.toFixed(1) + '" cy="' + d.y.toFixed(1) + '" r="' + (d.r + 8).toFixed(1) + '" fill="transparent" stroke="none" style="fill:transparent;stroke:none"/>' +
+                '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" dy="0.35em" style="font-size:' + fontSize + 'px" text-anchor="' + (left ? 'end' : 'start') + '" transform="rotate(' + (left ? deg + 180 : deg).toFixed(1) + ' ' + lx.toFixed(1) + ' ' + ly.toFixed(1) + ')">' + esc(label) + '</text>' +
+                '</g>';
+        });
+        svg += '</g></svg>';
+        wrap.innerHTML = svg;
+
+        const tip = document.getElementById('tooltip');
+        const moveTip = ev => {
+            const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+            let x = ev.clientX + pad, y = ev.clientY + pad;
+            if (x + w > window.innerWidth - 8) x = ev.clientX - w - pad;
+            if (y + h > window.innerHeight - 8) y = ev.clientY - h - pad;
+            tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+        };
+        wrap.querySelectorAll('.flow-hit').forEach(p => {
+            const e = fmEdges[+p.dataset.i];
+            p.addEventListener('mouseenter', ev => {
+                const rev = fmEdges.find(x => x.FromDepot === e.ToDepot && x.ToDepot === e.FromDepot);
+                const parts = Object.entries(e._partCount).sort((a, b) => b[1].n - a[1].n).slice(0, 5);
+                tip.innerHTML = '<b>' + esc(e.FromDepot) + ' → ' + esc(e.ToDepot) + '</b><br>' +
+                    e.Transfers.toLocaleString() + ' transfers · qty ' + int(e.Qty) + ' · ' + money(e.Value) + '<br>' +
+                    e.Parts + ' different parts' + (e.LastDate ? ' · last ' + fmtDate(e.LastDate) : '') +
+                    (rev ? '<br><span style="opacity:.75">Other way: ' + rev.Transfers.toLocaleString() + ' transfers</span>' : '') +
+                    (parts.length ? '<br><br><span style="opacity:.75">Top parts</span><br>' + parts.map(([pt, v]) => esc(pt) + ' ' + esc(v.d.slice(0, 28)) + ' ×' + v.n).join('<br>') : '');
+                tip.classList.remove('hidden'); moveTip(ev);
+                highlightEdge(+p.dataset.i);
+            });
+            p.addEventListener('mousemove', moveTip);
+            p.addEventListener('mouseleave', () => { tip.classList.add('hidden'); applyHighlight(fmPinned); });
+        });
+        wrap.querySelectorAll('.flow-node').forEach(g => {
+            const d = fmNodes[+g.dataset.n];
+            g.addEventListener('mouseenter', ev => {
+                tip.innerHTML = '<b>' + esc(d.name) + '</b><br>Sent: ' + d.outN.toLocaleString() + ' transfers (' + money(d.outV) + ')<br>Received: ' + d.inN.toLocaleString() + ' transfers (' + money(d.inV) + ')<br><span style="opacity:.75">Click to ' + (fmPinned === d.name ? 'clear' : 'focus') + '</span>';
+                tip.classList.remove('hidden'); moveTip(ev);
+                applyHighlight(d.name);
+            });
+            g.addEventListener('mousemove', moveTip);
+            g.addEventListener('mouseleave', () => { tip.classList.add('hidden'); applyHighlight(fmPinned); });
+            g.addEventListener('click', () => {
+                fmPinned = fmPinned === d.name ? '' : d.name;
+                document.getElementById('fmFocus').value = fmPinned;
+                tip.classList.add('hidden');
+                renderFlowMap();
+            });
+        });
+        applyHighlight(fmPinned);
+    }
+
+    function applyHighlight(name) {
+        const wrap = document.getElementById('fmSvg');
+        const linked = new Set(name ? [name] : []);
+        wrap.querySelectorAll('.flow-edge').forEach(p => {
+            const e = fmEdges[+p.dataset.i];
+            let color = COLOR_NEUTRAL, mk = 'n', op = p.dataset.op;
+            if (name) {
+                if (e.FromDepot === name) { color = COLOR_OUT; mk = 'o'; op = 0.9; linked.add(e.ToDepot); }
+                else if (e.ToDepot === name) { color = COLOR_IN; mk = 'i'; op = 0.9; linked.add(e.FromDepot); }
+                else op = 0.06;
+            }
+            p.setAttribute('stroke', color); p.setAttribute('stroke-opacity', op); p.setAttribute('marker-end', 'url(#arr-' + mk + ')');
+            if (name && (e.FromDepot === name || e.ToDepot === name)) p.parentNode.appendChild(p);
+        });
+        wrap.querySelectorAll('.flow-node').forEach(g => {
+            const d = fmNodes[+g.dataset.n];
+            g.classList.toggle('dim', !!name && !linked.has(d.name));
+            g.classList.toggle('sel', d.name === fmPinned);
+        });
+    }
+    function highlightEdge(i) {
+        document.getElementById('fmSvg').querySelectorAll('.flow-edge').forEach(p => {
+            const on = +p.dataset.i === i;
+            p.setAttribute('stroke-opacity', on ? 0.95 : 0.06);
+            if (on) { p.setAttribute('stroke', '#0f3460'); p.setAttribute('marker-end', 'url(#arr-n)'); }
+        });
+    }
+
+    function renderFlowSide(allEdges, tot) {
+        const side = document.getElementById('fmSide');
+        const mn = metricName();
+        let h = '';
+        if (fmPinned) {
+            const ins = allEdges.filter(e => e.ToDepot === fmPinned).sort((a, b) => b.M - a.M);
+            const outs = allEdges.filter(e => e.FromDepot === fmPinned).sort((a, b) => b.M - a.M);
+            const t = tot[fmPinned] || { outN: 0, inN: 0, outV: 0, inV: 0 };
+            h += '<h3>' + esc(fmPinned) + '</h3><p class="hint">Received ' + t.inN.toLocaleString() + ' transfers (' + money(t.inV) + ') · sent ' + t.outN.toLocaleString() + ' (' + money(t.outV) + ')</p>';
+            h += sideList('Receives most from', ins, 'FromDepot', COLOR_IN);
+            h += sideList('Sends most to', outs, 'ToDepot', COLOR_OUT);
+        } else {
+            h += '<h3>Top routes</h3><p class="hint">Ranked by ' + mn + '. Click a depot on the map to see its suppliers and destinations.</p>';
+            const top = allEdges.slice(0, 15), max = Math.max(1, ...top.map(e => e.M));
+            h += '<table class="mini-table"><thead><tr><th>From → To</th><th class="num">' + mn + '</th></tr></thead><tbody>' +
+                top.map(e => '<tr><td>' + esc(e.FromDepot) + ' → ' + esc(e.ToDepot) + '</td><td class="num" style="min-width:110px">' + barCell(e.M, max, COLOR_NEUTRAL, metricFmt(e.M)) + '</td></tr>').join('') +
+                '</tbody></table>';
+        }
+        const bal = Object.entries(tot).map(([n, v]) => ({ n, out: v.outN, in: v.inN, net: v.inN - v.outN })).sort((a, b) => (b.in + b.out) - (a.in + a.out));
+        h += '<div class="side-section" style="margin-top:20px"><h4>Depot balance (transfers)</h4><div style="max-height:320px;overflow:auto"><table class="mini-table"><thead><tr><th>Depot</th><th class="num">Received</th><th class="num">Sent</th><th class="num">Net</th></tr></thead><tbody>' +
+            bal.map(b => '<tr' + (b.n === fmPinned ? ' style="font-weight:700"' : '') + '><td>' + esc(b.n) + '</td><td class="num">' + b.in.toLocaleString() + '</td><td class="num">' + b.out.toLocaleString() + '</td><td class="num">' + (b.net > 0 ? '+' : '') + b.net.toLocaleString() + '</td></tr>').join('') +
+            '</tbody></table></div><p class="hint" style="margin-top:6px">Net above zero = takes in more than it gives out.</p></div>';
+        side.innerHTML = h;
+    }
+    function sideList(title, edges, key, color) {
+        if (!edges.length) return '<div class="side-section"><h4>' + title + '</h4><p class="hint">None in this period.</p></div>';
+        const max = Math.max(1, ...edges.map(e => e.M));
+        return '<div class="side-section"><h4>' + title + '</h4><table class="mini-table"><thead><tr><th>Depot</th><th class="num">' + metricName() + '</th></tr></thead><tbody>' +
+            edges.slice(0, 10).map(e => '<tr><td>' + esc(e[key]) + '</td><td class="num" style="min-width:110px">' + barCell(e.M, max, color, metricFmt(e.M)) + '</td></tr>').join('') +
+            '</tbody></table>' + (edges.length > 10 ? '<p class="hint" style="margin-top:4px">+ ' + (edges.length - 10) + ' more</p>' : '') + '</div>';
+    }
+    function exportRoutes() {
+        const { paired } = flowData();
+        const routes = routeRows(paired).sort((a, b) => b.Transfers - a.Transfers).map(r => ({
+            'From Depot': r.FromDepot, 'To Depot': r.ToDepot, Transfers: r.Transfers, Qty: r.Qty,
+            Value: +r.Value.toFixed(2), 'Unique Parts': r.Parts, 'Last Transfer': r.LastDate
+        }));
+        const tot = {};
+        paired.forEach(t => {
+            (tot[t.FromDepot] = tot[t.FromDepot] || { s: 0, r: 0, sv: 0, rv: 0 });
+            (tot[t.ToDepot] = tot[t.ToDepot] || { s: 0, r: 0, sv: 0, rv: 0 });
+            tot[t.FromDepot].s++; tot[t.FromDepot].sv += t.Value; tot[t.ToDepot].r++; tot[t.ToDepot].rv += t.Value;
+        });
+        const bal = Object.entries(tot).sort((a, b) => (b[1].s + b[1].r) - (a[1].s + a[1].r)).map(([n, v]) => ({
+            Depot: n, Received: v.r, Sent: v.s, Net: v.r - v.s, 'Value Received': +v.rv.toFixed(2), 'Value Sent': +v.sv.toFixed(2)
+        }));
+        const depots = bal.map(b => b.Depot);
+        const cell = {};
+        paired.forEach(t => { const k = t.FromDepot + '\u0000' + t.ToDepot; cell[k] = (cell[k] || 0) + 1; });
+        const matrix = depots.map(f => {
+            const row = { 'From \\ To': f };
+            depots.forEach(t => { row[t] = cell[f + '\u0000' + t] || null; });
+            return row;
+        });
+        exportBook('transfer-routes_' + fileTag('', val('fmFrom'), val('fmTo')) + '.xlsx', [
+            { name: 'Routes', rows: routes }, { name: 'Depot Balance', rows: bal }, { name: 'From-To Matrix', rows: matrix }
+        ]);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { initUpload(); initReports(); });
     </script>
 </body>
 </html>
