@@ -518,7 +518,7 @@
         sourceHtml += '<tr><td><span class="badge badge-emergency">Zvor/Zin</span> Emergency Orders</td><td>' + emergCount + '</td><td>' + Math.round(emergCount/total*100) + '%</td></tr>';
         sourceHtml += '</tbody></table>';
         const internalHere = rawData.filter(r => r.CCDesc === depot && isRecvTransfer(r) && r._internal && !isExcludedPart(r.Part)).length;
-        if (internalHere) sourceHtml += '<p style="font-size:12px;color:var(--text-light);margin-top:8px">' + internalHere + ' internal STOR→STOR line(s) at this depot (location changes, same depot both ends) are not counted. See them in the Transfers Report with Status = Internal moves.</p>';
+        if (internalHere) sourceHtml += '<p style="font-size:12px;color:var(--text-light);margin-top:8px">' + internalHere + ' internal STOR→STOR line(s) at this depot (location changes, same store both ends) are not counted. See them in the Transfers Report with Status = Internal moves.</p>';
 
         document.getElementById('breakdownGrid').innerHTML =
             '<div><h4 style="margin-bottom:8px;font-size:14px">By Period</h4>' + periodHtml + '</div>' +
@@ -606,7 +606,7 @@
         if (isZvorZin(r)) return 'Supplier order' + (r.PO ? ' (PO ' + r.PO + ')' : '');
         const t = r._xfer;
         if (!t) return '';
-        return t.FromDepot + (t.FromStore ? ' (' + t.FromStore + ')' : '');
+        return t.FromDepot;
     }
     function isZvorZin(r) { const d = r.PODocType.toUpperCase(); return d === 'ZVOR' || d === 'ZIN'; }
     function fromCell(r) {
@@ -652,11 +652,33 @@
     // =====================================================================
     //  Reports: Transfers, Zvor/Zin orders, Transfer flow map
     // =====================================================================
+    // Store code → depot name (same list as the Warranty Tracker). Transfers are identified by STORE code:
+    // a location change keeps the same store; a real transfer moves between two different stores.
+    const STORE_NAMES = {
+      '3011': 'Aberdeen',        '1211': 'Adderley Green',   '4201': 'Basildon',      '6071': 'Bath',
+      '3621': 'Blantyre',        '2201': 'Bradford',         '2241': 'Bramley',       '6651': 'Bridgend',
+      '3671': 'Caledonia',       '6831': 'Camborne',         '4241': 'Chelmsford',    '4281': 'Colchester',
+      '2411': 'Doncaster',       '3611': 'Dumbarton',        '4111': 'Great Yarmouth', '4211': 'Hadleigh',
+      '2211': 'Halifax',         '6661': 'Haverfordwest',    '6311': 'Hengrove',      '6241': 'Hilsea',
+      '6231': 'Hoeford',         '2231': 'Huddersfield',     '2261': 'Hunslet Park',  '4131': 'Ipswich',
+      '4061': 'Kings Lynn',      '6321': 'Lawrence Hill',    '4401': 'Leicester',     '4101': 'Lowestoft',
+      '2431': 'Olive Grove',     '3711': 'Overtown',         '6861': 'Penzance',      '6621': 'Port Talbot',
+      '3681': 'Regional Repair', '1151': 'Rochdale',         '4031': 'Roundtree Way', '3651': 'Scotstoun',
+      '5171': 'Slough',          '6701': 'Swansea',          '6061': 'Taunton',       '2281': 'Todmorden',
+      '6711': 'Tycroes',         '4021': 'Vulcan Road',      '6021': 'Wells',         '6041': 'Weston Supermare',
+      '6271': 'Weymouth',        '4641': 'Worcester',        '6081': 'Yeovil',        '2311': 'York',
+    };
+    function storeLabel(r) {
+        const code = r.Store;
+        if (!code) return r.CCDesc || '(blank)';
+        return (STORE_NAMES[code] || r.CCDesc || 'Store') + ' (' + code + ')';
+    }
     const UNKNOWN_FROM = 'Unknown (sender not found)';
     const UNKNOWN_TO = 'Unknown (receipt not found)';
     const COLOR_OUT = '#E5007D', COLOR_IN = '#2D2A6E', COLOR_NEUTRAL = '#a9a8c4';
 
-    let transfers = [];      // paired transfer records
+    let transfers = [];
+    let ccToStore = {};      // paired transfer records
     let zvorZinRows = [];    // all Zvor/Zin rows
     let allPeriods = [];
     let trView = 'detail', orView = 'summary';
@@ -700,10 +722,16 @@
         zvorZinRows = rawData.filter(r => isZvorZinRow(r) && up(r.PODocType) !== 'NB');
 
         const depots = [...new Set(rawData.map(r => r.CCDesc).filter(Boolean))].sort();
-        ['trDepot', 'orDepot', 'fmFocus'].forEach(id => {
-            const sel = document.getElementById(id);
-            sel.innerHTML = '<option value="">All depots</option>' + depots.map(d => '<option>' + esc(d) + '</option>').join('');
+        document.getElementById('orDepot').innerHTML = '<option value="">All depots</option>' + depots.map(d => '<option>' + esc(d) + '</option>').join('');
+        const stores = [...new Set(transfers.flatMap(t => [t.FromDepot, t.ToDepot]))].filter(d => d !== UNKNOWN_FROM && d !== UNKNOWN_TO).sort();
+        ['trDepot', 'fmFocus'].forEach(id => {
+            document.getElementById(id).innerHTML = '<option value="">All depots</option>' + stores.map(d => '<option>' + esc(d) + '</option>').join('');
         });
+        // cost centre (analysis depot) → its most common store label, so the selection carries across tabs
+        const cnt = {};
+        rawData.forEach(r => { if (r.CCDesc && r.Store) { const k = r.CCDesc + '\u0000' + storeLabel(r); cnt[k] = (cnt[k] || 0) + 1; } });
+        ccToStore = {};
+        Object.entries(cnt).sort((a, b) => b[1] - a[1]).forEach(([k]) => { const [cc, lbl] = k.split('\u0000'); if (!ccToStore[cc]) ccToStore[cc] = lbl; });
         document.querySelectorAll('.period-from').forEach(sel => {
             sel.innerHTML = '<option value="">Earliest</option>' + allPeriods.map(p => '<option>' + esc(p) + '</option>').join('');
         });
@@ -721,11 +749,10 @@
     // one going out and one coming in. These are not real transfers and are never counted.
     //   a) two lines, same depot + part + transaction no. (or same day), same qty, opposite sign or one RECV + one issue
     //   b) a RECV paired to a sender in the same depot
-    //   c) any RECV left with a negative qty (stock going out, not a receipt)
     // Real transfers: each remaining RECV is paired with its issue row in another depot by
     // 1) same PO (+line)  2) same transaction number  3) same part + qty, nearest date (issue up to 45 days before)
     function dayKey(d) { return d ? d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() : ''; }
-    function depotOf(r) { return r.CCDesc || r.Store; }
+    function depotOf(r) { return r.Store || r.CCDesc; }
     function buildTransfers() {
         const stor = rawData.filter(isStorToStor);
         stor.forEach(r => { r._internal = ''; r._xfer = null; });
@@ -743,7 +770,7 @@
                         if (b._internal || absq(a) === 0 || Math.abs(absq(a) - absq(b)) > 1e-6) continue;
                         const oppSign = Math.sign(a.TransactionQty) !== Math.sign(b.TransactionQty);
                         if (!oppSign && isRecv(a) === isRecv(b)) continue;
-                        a._internal = b._internal = 'Location change (out + in, same depot)';
+                        a._internal = b._internal = 'Location change (out + in, same store)';
                         internalPairs.push([a, b]);
                         break;
                     }
@@ -753,10 +780,8 @@
         pairUp(r => r.TransactionNumber ? r.Part + '|' + depotOf(r) + '|T' + r.TransactionNumber : '');
         pairUp(r => r.Part + '|' + depotOf(r) + '|D' + dayKey(r._date));
 
-        const recvs = stor.filter(r => isRecv(r) && !r._internal);
-        const negRecvs = recvs.filter(r => r.TransactionQty < 0);
-        negRecvs.forEach(r => { r._internal = 'Negative receipt (stock going out)'; });
-        const posRecvs = recvs.filter(r => r.TransactionQty >= 0);
+        // NB: the sign of a STOR→STOR receipt is not used - real transfer receipts can be negative in the export
+        const posRecvs = stor.filter(r => isRecv(r) && !r._internal);
         const sends = stor.filter(r => !isRecv(r) && !r._internal);
         const byPart = {};
         sends.forEach((s, i) => { (byPart[s.Part] = byPart[s.Part] || []).push(i); });
@@ -790,8 +815,8 @@
         const rec = (r, s, extra) => Object.assign({
             Date: r ? r._date : s._date, Period: (r || s)._pk, Part: (r || s).Part, PartDesc: (r || s).PartDesc,
             Qty: absq(r || s), Value: Math.abs((r || s).TransactionValue), UOM: (r || s).UOM,
-            FromDepot: s ? (s.CCDesc || '(blank)') : UNKNOWN_FROM, FromStore: s ? s.Store : '',
-            ToDepot: r ? (r.CCDesc || '(blank)') : UNKNOWN_TO, ToStore: r ? r.Store : '',
+            FromDepot: s ? storeLabel(s) : UNKNOWN_FROM, FromStore: s ? s.Store : '', FromCC: s ? s.CCDesc : '',
+            ToDepot: r ? storeLabel(r) : UNKNOWN_TO, ToStore: r ? r.Store : '', ToCC: r ? r.CCDesc : '',
             Status: '', Note: '', MatchedBy: '',
             SentDate: s ? s._date : null, RecvTxn: r ? r.TransactionNumber : '', SendTxn: s ? s.TransactionNumber : '',
             PO: (r && r.PO) || (s ? s.PO : ''), Originator: (r && r.Originator) || (s ? s.Originator : ''),
@@ -805,7 +830,7 @@
             const s = m ? m.s : null;
             let t;
             if (s && depotOf(s) === depotOf(r)) {
-                r._internal = s._internal = 'Same depot both ends';
+                r._internal = s._internal = 'Same store both ends';
                 t = rec(r, s, { Status: 'Internal move', Note: r._internal, MatchedBy: m.method });
             } else {
                 t = rec(r, s, { Status: s ? 'Matched' : 'Receipt only', MatchedBy: m ? m.method : '' });
@@ -815,15 +840,10 @@
         });
         sends.forEach((s, i) => { if (!used.has(i)) transfers.push(rec(null, s, { Status: 'Issue only' })); });
         internalPairs.forEach(([a, b]) => {
-            const inn = a.TransactionQty > 0 ? a : b.TransactionQty > 0 ? b : (isRecv(a) ? a : b);
+            const inn = isRecv(a) !== isRecv(b) ? (isRecv(a) ? a : b) : (a.TransactionQty > 0 ? a : b);
             const out = inn === a ? b : a;
             const t = rec(inn, out, { Status: 'Internal move', Note: a._internal, Date: inn._date || out._date });
             a._xfer = b._xfer = t;
-            transfers.push(t);
-        });
-        negRecvs.forEach(r => {
-            const t = rec(r, r, { Status: 'Internal move', Note: r._internal });
-            r._xfer = t;
             transfers.push(t);
         });
     }
@@ -861,9 +881,10 @@
         // Carry the depot picked on the analysis tab across, if the report has none set yet
         const main = val('depotSelect');
         if (main) {
-            if (name === 'transfers' && !val('trDepot')) document.getElementById('trDepot').value = main;
+            const st = ccToStore[main];
+            if (name === 'transfers' && !val('trDepot') && st) document.getElementById('trDepot').value = st;
             if (name === 'orders' && !val('orDepot')) document.getElementById('orDepot').value = main;
-            if (name === 'flow' && !fmPinned) { fmPinned = main; document.getElementById('fmFocus').value = main; }
+            if (name === 'flow' && !fmPinned && st) { fmPinned = st; document.getElementById('fmFocus').value = st; }
         }
         refreshActive();
     }
@@ -1007,8 +1028,8 @@
                 { key: 'PartDesc', label: 'Description' },
                 { key: 'Qty', label: 'Qty', num: true, fmt: t => int(t.Qty) },
                 { key: 'Value', label: 'Value', num: true, fmt: t => money(t.Value) },
-                { key: 'FromDepot', label: 'From', fmt: t => esc(t.FromDepot) + (t.FromStore ? ' <span style="color:var(--text-light)">(' + esc(t.FromStore) + ')</span>' : '') },
-                { key: 'ToDepot', label: 'To', fmt: t => esc(t.ToDepot) + (t.ToStore ? ' <span style="color:var(--text-light)">(' + esc(t.ToStore) + ')</span>' : '') },
+                { key: 'FromDepot', label: 'From', fmt: t => esc(t.FromDepot) },
+                { key: 'ToDepot', label: 'To', fmt: t => esc(t.ToDepot) },
                 { key: 'Status', label: 'Status', fmt: STATUS_BADGE },
                 { key: 'Originator', label: 'Originator' },
                 { key: 'WorkOrder', label: 'Work Order' },
@@ -1048,7 +1069,10 @@
                 { key: 'LastDate', label: 'Last transfer', fmt: r => fmtDate(r.LastDate) }
             ], rows, { sortCol: 'Transfers', asc: false });
         }
-        document.getElementById('trNote').textContent = (drawGridNote('trGrid') ? drawGridNote('trGrid') + ' ' : '') +
+        const cnt = st => transfers.filter(t => t.Status === st).length;
+        const check = 'Data check (whole file): ' + cnt('Matched') + ' matched · ' + cnt('Receipt only') + ' receipt only · ' +
+            cnt('Issue only') + ' issue only · ' + cnt('Internal move') + ' internal moves. ';
+        document.getElementById('trNote').textContent = check + (drawGridNote('trGrid') ? drawGridNote('trGrid') + ' ' : '') +
             'Pairing: receipts are matched to the sending issue row by PO, then transaction number, then same part + quantity within 45 days.';
     }
     function drawGridNote(id) {
@@ -1105,8 +1129,8 @@
             if (t.Status === 'Issue only' || t.Status === 'Internal move') return;
             if (ex && isExcludedPart(t.Part)) return;
             if (!inPeriodRange(t.Period, from, to)) return;
-            if (depot && t.ToDepot !== depot) return;
-            const k = t.Part + '|' + t.ToDepot;
+            if (depot && t.ToCC !== depot) return;
+            const k = t.Part + '|' + t.ToCC;
             tin[k] = tin[k] || { n: 0, q: 0 };
             tin[k].n++; tin[k].q += t.Qty;
         });
